@@ -5,8 +5,14 @@
 #include "text.h"
 
 typedef struct {
+  // Output buffer. All appended things stored in here.
+  // REQUIRED
   struct string *outBuffer;
+  // Used for converting u64, f32.
+  // If you are appending only strings you can omit this.
+  // OPTIONAL
   struct string *stringBuffer;
+  // Length of output buffer.
   u64 length;
 } string_builder;
 

@@ -44,6 +44,16 @@ StringFromZeroTerminated(u8 *src, u64 max)
   return string;
 }
 
+static inline struct string
+StringSlice(struct string *string, u64 startIndex, u64 endIndex)
+{
+  debug_assert(string != 0);
+  debug_assert(startIndex < endIndex);
+  debug_assert(endIndex - startIndex <= string->length);
+  struct string sliced = {.value = string->value + startIndex, .length = endIndex - startIndex};
+  return sliced;
+}
+
 static inline b8
 IsStringNull(struct string *string)
 {

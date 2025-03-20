@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// for example usage see mbedtls/programs/ssl/ssl_client2.c
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/error.h>
@@ -12,6 +13,8 @@
 #include "string_builder.h"
 #include "text.h"
 #include "type.h"
+
+#include "http_parser.c"
 
 comptime u64 KILOBYTES = 1 << 10;
 comptime u64 MEGABYTES = 1 << 20;
@@ -173,8 +176,6 @@ main(void)
     }
   }
 
-  // see: programs/ssl/ssl_client2.c
-
   // Recieve a HTTP Response
   u64 responseBufferMax = 256 * KILOBYTES;
   u8 *responseBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
@@ -204,14 +205,12 @@ main(void)
       u64 bytesRead = (u64)ret;
       if (bytesRead == 0)
         break; // EOF
-
       struct string packet = StringFromBuffer(responseBuffer + totalBytesRead, bytesRead);
-      struct string finalChunkedPacket = STRING_FROM_ZERO_TERMINATED("0\r\n\r\n");
-      if (IsStringEndsWith(&packet, &finalChunkedPacket)) {
-        break;
-      }
-
       totalBytesRead += bytesRead;
+
+      struct string finalChunkedPacket = STRING_FROM_ZERO_TERMINATED("0\r\n\r\n");
+      if (IsStringEqual(&packet, &finalChunkedPacket))
+        break;
     }
 
     response = StringFromBuffer(responseBuffer, totalBytesRead);
@@ -226,6 +225,7 @@ main(void)
   }
 
   // Parse HTTP Response
+#if 0
   struct string *httpSeperator = &STRING_FROM_ZERO_TERMINATED("\r\n");
 
   u64 httpFieldCount;
@@ -234,7 +234,7 @@ main(void)
   struct string *httpFields = MemoryArenaPushUnaligned(&stackMemory, sizeof(*httpFields) * httpFieldCount);
   StringSplit(&response, httpSeperator, &httpFieldCount, httpFields);
 
-  for (u32 httpFieldIndex = 0; httpFieldIndex < httpFieldCount; httpFieldIndex++) {
+  for (u32 httpFieldIndex = 1; httpFieldIndex < httpFieldCount; httpFieldIndex++) {
     struct string *httpField = httpFields + httpFieldIndex;
     if (IsStringEqualIgnoreCase(httpField, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 200 OK"))) {
       struct string message = STRING_FROM_ZERO_TERMINATED("OK\n");
@@ -244,6 +244,29 @@ main(void)
       write(STDOUT_FILENO, message.value, message.length);
     }
   }
+#endif
+
+  struct http_parser parser;
+  HttpParserInit(&parser);
+  HttpParserMustHaveStatusCode(&parser, 200);
+  struct json_token jsonTokens[128];
+  u32 jsonTokenCount;
+  HttpParserMustBeJson(&parser, jsonTokens, ARRAY_COUNT(jsonTokens), &jsonTokenCount);
+  u32 breakHere = 1;
+  if (HttpParserParse(&parser, &response)) {
+    return 1;
+  }
+
+#if 0
+  for (u32 index = 0; index < jsonTokenCount; index++) {
+    json_token jsonToken = jsonTokens + index;
+    if jsonToken is object
+      index++
+      jsonToken = jsonTokens + index;
+      
+      if 
+  }
+#endif
 
   return 0;
 }

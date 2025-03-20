@@ -84,6 +84,14 @@ lib=""
 "$cc" $cflags $ldflags $inc -o "$output" $src $lib
 RunTest "$output" "TEST json parser failed."
 
+### http_parser
+inc="-I$ProjectRoot/include -I$ProjectRoot/src"
+src="$pwd/http_parser_test.c"
+output="$outputDir/$(BasenameWithoutExtension "$src")"
+lib=""
+"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+RunTest "$output" "TEST http parser failed."
+
 if [ $failedTestCount -ne 0 ]; then
   echo $failedTestCount tests failed.
   exit 1
