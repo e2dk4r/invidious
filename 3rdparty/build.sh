@@ -29,13 +29,20 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
   tar --cd "$outputDir" --extract --file "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
   Log "  Extracted in $(StopTimer) seconds"
 
+  # TODO: Configure Mbed TLS
+  # https://mbed-tls.readthedocs.io/en/latest/kb/compiling-and-building/how-do-i-configure-mbedtls/
+  # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/using-static-memory-instead-of-the-heap/
+  # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/reduce-polarssl-memory-and-storage-footprint/
+
   # README.md > ### CMake
   mbedtlsBuildType="Debug"
   if [ $IsBuildDebug -eq 0 ]; then
     mbedtlsBuildType="Release"
   fi
   StartTimer
-  cmake -G Ninja -S "$MBEDTLS_DIR" -B "$MBEDTLS_DIR/build" --install-prefix "$MBEDTLS_DIR-install" -D CMAKE_BUILD_TYPE="$mbedtlsBuildType"
+  cmake -G Ninja -S "$MBEDTLS_DIR" -B "$MBEDTLS_DIR/build" --install-prefix "$MBEDTLS_DIR-install" -D CMAKE_BUILD_TYPE="$mbedtlsBuildType" \
+    -D ENABLE_PROGRAMS=OFF \
+    -D ENABLE_TESTING=OFF
   Log "  Configured in $(StopTimer) seconds"
 
   StartTimer
