@@ -1,0 +1,160 @@
+#pragma once
+
+/*
+ * Functions that have names with 'Extract' or 'Peek' or 'Is' in them, do NOT advance cursor position.
+ */
+
+#include "text.h"
+
+struct string_cursor {
+  struct string *source;
+  u64 position;
+};
+
+internalfn struct string_cursor
+StringCursorFromString(struct string *string)
+{
+  return (struct string_cursor){
+      .source = string,
+      .position = 0,
+  };
+}
+
+internalfn struct string
+StringCursorExtractSubstring(struct string_cursor *cursor, u64 length)
+{
+  struct string substring = StringFromBuffer(cursor->source->value + cursor->position, length);
+  return substring;
+}
+
+internalfn struct string
+StringCursorConsumeSubstring(struct string_cursor *cursor, u64 length)
+{
+  struct string substring = StringCursorExtractSubstring(cursor, length);
+  cursor->position += length;
+  return substring;
+}
+
+internalfn b8
+IsStringCursorAtEnd(struct string_cursor *cursor)
+{
+  return cursor->position == cursor->source->length;
+}
+
+internalfn b8
+StringCursorPeekStartsWith(struct string_cursor *cursor, struct string *prefix)
+{
+  if (cursor->position + prefix->length > cursor->source->length)
+    return 0;
+  struct string substring = StringCursorExtractSubstring(cursor, prefix->length);
+  return IsStringStartsWith(&substring, prefix);
+}
+
+internalfn b8
+IsStringCursorStartsWith(struct string_cursor *cursor, struct string *prefix)
+{
+  b8 result = StringCursorPeekStartsWith(cursor, prefix);
+  cursor->position += prefix->length;
+  if (cursor->position > cursor->source->length)
+    cursor->position = cursor->source->length;
+  return result;
+}
+
+internalfn b8
+StringCursorAdvanceAfter(struct string_cursor *cursor, struct string *search)
+{
+  struct string remaining =
+      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+
+  u64 index = 0;
+  while (index < remaining.length) {
+    struct string substring = StringFromBuffer(remaining.value + index, search->length);
+    if (search->length > remaining.length - index) {
+      cursor->position += remaining.length;
+      return 0;
+    }
+
+    if (IsStringEqual(&substring, search)) {
+      index += search->length;
+      break;
+    }
+
+    index++;
+  }
+
+  cursor->position += index;
+  return 1;
+}
+
+internalfn b8
+IsStringCursorRemainingEqual(struct string_cursor *cursor, struct string *search)
+{
+  if (cursor->position + search->length > cursor->source->length)
+    return 0;
+
+  struct string remaining =
+      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+  return IsStringEqual(&remaining, search);
+}
+
+internalfn struct string
+StringCursorExtractUntil(struct string_cursor *cursor, struct string *search)
+{
+  struct string result = {};
+  struct string remaining =
+      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+
+  u64 index = 0;
+  while (index < remaining.length) {
+    struct string substring = StringFromBuffer(remaining.value + index, search->length);
+    if (search->length > remaining.length - index)
+      return result;
+
+    if (IsStringEqual(&substring, search))
+      break;
+
+    index++;
+  }
+
+  if (index == 0)
+    return result;
+
+  result.value = remaining.value;
+  result.length = index;
+  return result;
+}
+
+internalfn struct string
+StringCursorConsumeUntil(struct string_cursor *cursor, struct string *search)
+{
+  struct string result = StringCursorExtractUntil(cursor, search);
+  cursor->position += result.length;
+  return result;
+}
+
+internalfn struct string
+StringCursorExtractNumber(struct string_cursor *cursor)
+{
+  struct string result = {};
+  struct string remaining =
+      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+
+  u64 count = 0;
+  for (u32 index = 0; index < remaining.length; index++) {
+    comptime b8 isNumberTable[U8_MAX] = {
+        ['-'] = 1, ['0'] = 1, ['1'] = 1, ['2'] = 1, ['3'] = 1, ['4'] = 1,
+        ['5'] = 1, ['6'] = 1, ['7'] = 1, ['8'] = 1, ['9'] = 1,
+    };
+    if (!isNumberTable[remaining.value[index]])
+      break;
+
+    count++;
+  }
+
+  if (count == 0)
+    return result;
+
+  result = remaining;
+  result.length = count;
+  return result;
+}

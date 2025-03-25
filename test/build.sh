@@ -68,6 +68,22 @@ lib="$LIB_M"
 "$cc" $cflags $ldflags $inc -o "$output" $src $lib
 RunTest "$output" "TEST teju failed."
 
+### string_cursor
+inc="-I$ProjectRoot/include"
+src="$pwd/string_cursor_test.c"
+output="$outputDir/$(BasenameWithoutExtension "$src")"
+lib=""
+"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+RunTest "$output" "TEST string cursor failed."
+
+### json_parser
+inc="-I$ProjectRoot/include -I$ProjectRoot/src"
+src="$pwd/json_parser_test.c"
+output="$outputDir/$(BasenameWithoutExtension "$src")"
+lib=""
+"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+RunTest "$output" "TEST json parser failed."
+
 if [ $failedTestCount -ne 0 ]; then
   echo $failedTestCount tests failed.
   exit 1
