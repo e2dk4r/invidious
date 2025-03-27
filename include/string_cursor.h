@@ -20,11 +20,25 @@ StringCursorFromString(struct string *string)
   };
 }
 
+internalfn u64
+StringCursorRemainingLength(struct string_cursor *cursor)
+{
+  return cursor->source->length - cursor->position;
+}
+
 internalfn struct string
 StringCursorExtractSubstring(struct string_cursor *cursor, u64 length)
 {
+  if (length > StringCursorRemainingLength(cursor))
+    length = StringCursorRemainingLength(cursor);
   struct string substring = StringFromBuffer(cursor->source->value + cursor->position, length);
   return substring;
+}
+
+internalfn struct string
+StringCursorExtractRemaining(struct string_cursor *cursor)
+{
+  return StringCursorExtractSubstring(cursor, StringCursorRemainingLength(cursor));
 }
 
 internalfn struct string
@@ -44,7 +58,7 @@ IsStringCursorAtEnd(struct string_cursor *cursor)
 internalfn b8
 StringCursorPeekStartsWith(struct string_cursor *cursor, struct string *prefix)
 {
-  if (cursor->position + prefix->length > cursor->source->length)
+  if (prefix->length > StringCursorRemainingLength(cursor))
     return 0;
   struct string substring = StringCursorExtractSubstring(cursor, prefix->length);
   return IsStringStartsWith(&substring, prefix);
@@ -54,17 +68,17 @@ internalfn b8
 IsStringCursorStartsWith(struct string_cursor *cursor, struct string *prefix)
 {
   b8 result = StringCursorPeekStartsWith(cursor, prefix);
-  cursor->position += prefix->length;
-  if (cursor->position > cursor->source->length)
-    cursor->position = cursor->source->length;
+  if (prefix->length > StringCursorRemainingLength(cursor))
+    cursor->position += StringCursorRemainingLength(cursor);
+  else
+    cursor->position += prefix->length;
   return result;
 }
 
 internalfn b8
 StringCursorAdvanceAfter(struct string_cursor *cursor, struct string *search)
 {
-  struct string remaining =
-      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+  struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 index = 0;
   while (index < remaining.length) {
@@ -92,8 +106,7 @@ IsStringCursorRemainingEqual(struct string_cursor *cursor, struct string *search
   if (cursor->position + search->length > cursor->source->length)
     return 0;
 
-  struct string remaining =
-      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+  struct string remaining = StringCursorExtractRemaining(cursor);
   return IsStringEqual(&remaining, search);
 }
 
@@ -101,8 +114,7 @@ internalfn struct string
 StringCursorExtractUntil(struct string_cursor *cursor, struct string *search)
 {
   struct string result = {};
-  struct string remaining =
-      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+  struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 index = 0;
   while (index < remaining.length) {
@@ -136,8 +148,7 @@ internalfn struct string
 StringCursorExtractNumber(struct string_cursor *cursor)
 {
   struct string result = {};
-  struct string remaining =
-      StringFromBuffer(cursor->source->value + cursor->position, cursor->source->length - cursor->position);
+  struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 count = 0;
   for (u32 index = 0; index < remaining.length; index++) {
