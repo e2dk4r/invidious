@@ -9,6 +9,7 @@
   XX(STRING_CURSOR_TEST_ERROR_IS_REMAINING_EQUAL_EXPECTED_TRUE, "Remaining text must match the search string")         \
   XX(STRING_CURSOR_TEST_ERROR_IS_REMAINING_EQUAL_EXPECTED_FALSE, "Remaining text must NOT match the search string")    \
   XX(STRING_CURSOR_TEST_ERROR_CONSUME_UNTIL_EXPECTED, "Text consumed must match the expected")                         \
+  XX(STRING_CURSOR_TEST_ERROR_EXTRACT_THROUGH_EXPECTED, "Text extracted through search must match the expected")       \
   XX(STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_TRUE, "Number must be extracted from cursor position")           \
   XX(STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_FALSE, "Number must NOT be extracted from cursor position")
 
@@ -383,6 +384,9 @@ main(void)
         LogMessage(&errorMessage);
       }
     }
+  } else {
+    LogMessage(&STRING_FROM_ZERO_TERMINATED(
+        "StringCursorAdvanceAfter() tests are skipped because IsStringCursorRemainingEqual() failed\n"));
   }
 
   // struct string StringCursorConsumeUntil(struct string_cursor *cursor, struct string *search)
@@ -471,6 +475,120 @@ main(void)
         StringBuilderAppendPrintableString(sb, expected);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
         StringBuilderAppendPrintableString(sb, &got);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        LogMessage(&errorMessage);
+      }
+    }
+  }
+
+  // struct string StringCursorExtractThrough(struct string_cursor *cursor, struct string *search)
+  {
+    struct test_case {
+      struct string_cursor cursor;
+      struct string *search;
+      struct string expected;
+    } testCases[] = {
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
+            .expected = STRING_FROM_ZERO_TERMINATED("Lorem"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("ab"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("c"),
+            .expected = STRING_FROM_ZERO_TERMINATED("ab"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("Ipsum"),
+            .expected = STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
+            .expected = STRING_FROM_ZERO_TERMINATED("1.2"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .position = 2,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
+            .expected = {},
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .expected = {},
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
+            .expected = STRING_FROM_ZERO_TERMINATED("1.2.3"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .position = 2,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
+            .expected = STRING_FROM_ZERO_TERMINATED("2.3"),
+        },
+    };
+
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
+
+      struct string *expected = &testCase->expected;
+      struct string_cursor *cursor = &testCase->cursor;
+      struct string *search = testCase->search;
+
+      u32 breakHere = 1;
+      struct string got = StringCursorExtractThrough(cursor, search);
+      if (!IsStringEqual(&got, expected)) {
+        errorCode = STRING_CURSOR_TEST_ERROR_EXTRACT_THROUGH_EXPECTED;
+
+        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendString(sb, cursor->source);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendU64(sb, cursor->position);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendString(sb, search);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: '"));
+        StringBuilderAppendPrintableString(sb, expected);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: '"));
+        StringBuilderAppendPrintableString(sb, &got);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         LogMessage(&errorMessage);
