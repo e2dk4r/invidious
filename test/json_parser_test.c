@@ -399,6 +399,7 @@ main(void)
       } else {
         // if tokenCount is correct
 
+        u32 wrongTokenCount = 0;
         for (u32 tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
           struct json_token *token = tokens + tokenIndex;
           struct json_token *expectedToken = expectedTokens + tokenIndex;
@@ -411,11 +412,13 @@ main(void)
               continue;
           }
 
-          errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                         : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-          StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json: "));
-          StringBuilderAppendString(sb, json);
+          if (wrongTokenCount == 0) {
+            errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                           : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+            StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json: "));
+            StringBuilderAppendString(sb, json);
+          }
 
           if (token->type != expectedToken->type) {
             StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token type to be "));
@@ -467,6 +470,8 @@ main(void)
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
           struct string errorMessage = StringBuilderFlush(sb);
           PrintString(&errorMessage);
+
+          wrongTokenCount++;
         }
       }
 
@@ -695,6 +700,7 @@ main(void)
       } else {
         // if tokenCount is correct
 
+        u32 wrongTokenCount = 0;
         for (u32 tokenIndex = 0; tokenIndex < totalTokenCount; tokenIndex++) {
           struct json_token *token = tokens + tokenIndex;
           struct json_token *expectedToken = expectedTokens + tokenIndex;
@@ -710,17 +716,20 @@ main(void)
           errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
                                          : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
 
-          StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-          for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-            struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json "));
-            StringBuilderAppendU64(sb, chunkedJsonIndex);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(": "));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(length: "));
-            StringBuilderAppendU64(sb, chunkedJson->length);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(") '"));
-            StringBuilderAppendString(sb, chunkedJson);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
+          if (wrongTokenCount == 0) {
+            StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+
+            for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
+              struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json "));
+              StringBuilderAppendU64(sb, chunkedJsonIndex);
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(": "));
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(length: "));
+              StringBuilderAppendU64(sb, chunkedJson->length);
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(") '"));
+              StringBuilderAppendString(sb, chunkedJson);
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
+            }
           }
 
           if (token->type != expectedToken->type) {
@@ -773,6 +782,8 @@ main(void)
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
           struct string errorMessage = StringBuilderFlush(sb);
           PrintString(&errorMessage);
+
+          wrongTokenCount++;
         }
       }
 
