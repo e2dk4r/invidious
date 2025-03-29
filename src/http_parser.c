@@ -147,8 +147,8 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
     parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
     return 0;
   }
-  u16 statusCode;
-  if (!ParseU64(&statusCodeText, (u64 *)&statusCode)) {
+  u64 statusCode;
+  if (!ParseU64(&statusCodeText, &statusCode)) {
     parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
     return 0;
   }
