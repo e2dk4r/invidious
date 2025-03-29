@@ -36,7 +36,7 @@ comptime struct http_parser_test_error_info {
 };
 
 internalfn string *
-GetTestErrorMessage(enum http_parser_test_error errorCode)
+GetHttpParserTestErrorMessage(enum http_parser_test_error errorCode)
 {
   for (u32 index = 0; index < ARRAY_COUNT(TEXT_TEST_ERRORS); index++) {
     const struct http_parser_test_error_info *info = TEXT_TEST_ERRORS + index;
@@ -44,6 +44,27 @@ GetTestErrorMessage(enum http_parser_test_error errorCode)
       return (struct string *)&info->message;
   }
   return 0;
+}
+
+internalfn void
+StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error error)
+{
+  struct string httpParserErrorTexts[] = {
+      [HTTP_RESPONSE_IS_NOT_HTTP_1_1] = STRING_FROM_ZERO_TERMINATED("response is not HTTP 1.1"),
+      [HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER] =
+          STRING_FROM_ZERO_TERMINATED("status code is not 3 digit integer"),
+      [HTTP_RESPONSE_STATUS_CODE_NOT_EXPECTED] = STRING_FROM_ZERO_TERMINATED("status code is not what is expected"),
+      [HTTP_RESPONSE_PARTIAL] = STRING_FROM_ZERO_TERMINATED("response is partial"),
+      [HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED] =
+          STRING_FROM_ZERO_TERMINATED("response is not chunked transfer encoded"),
+      [HTTP_RESPONSE_CONTENT_TYPE_NOT_EXPECTED] = STRING_FROM_ZERO_TERMINATED("content type is not what is expected"),
+      [HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_SIZE_IS_NOT_HEX] =
+          STRING_FROM_ZERO_TERMINATED("chunk size is not hexadecimal"),
+      [HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_DATA_MALFORMED] =
+          STRING_FROM_ZERO_TERMINATED("chunk data is malformed"),
+  };
+  struct string *httpParserErrorText = httpParserErrorTexts + (u32)error;
+  StringBuilderAppendString(sb, httpParserErrorText);
 }
 
 internalfn void
@@ -64,6 +85,78 @@ StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(SPACE)"));
   else
     StringBuilderAppendString(sb, string);
+}
+
+internalfn void
+StringBuilderAppendHexDump(string_builder *sb, struct string *string)
+{
+  if (string->value == 0) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    return;
+  } else if (string->value != 0 && string->length == 0) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    return;
+  }
+
+  struct string_cursor cursor = StringCursorFromString(string);
+  u8 offsetBuffer[8];
+  struct string offsetBufferString = StringFromBuffer(offsetBuffer, ARRAY_COUNT(offsetBuffer));
+  u8 hexBuffer[2];
+  struct string hexBufferString = StringFromBuffer(hexBuffer, ARRAY_COUNT(hexBuffer));
+
+  while (!IsStringCursorAtEnd(&cursor)) {
+    // offset
+    struct string offsetText = FormatHex(&offsetBufferString, cursor.position);
+    for (u32 offsetTextPrefixIndex = 0; offsetTextPrefixIndex < offsetBufferString.length - offsetText.length;
+         offsetTextPrefixIndex++) {
+      // offset length must be 8, so fill prefix with zeros
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("0"));
+    }
+    StringBuilderAppendString(sb, &offsetText);
+
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+
+    // hex
+    u64 width = 16;
+    struct string substring = StringCursorConsumeSubstring(&cursor, width);
+    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
+      u8 character = *(substring.value + substringIndex);
+      struct string hexText = FormatHex(&hexBufferString, (u64)character);
+      debug_assert(hexText.length == 2);
+      StringBuilderAppendString(sb, &hexText);
+
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+
+      if (substringIndex + 1 == 8)
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    }
+
+    for (u64 index = 0; index < width - substring.length; index++) {
+      // align ascii to right
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("   "));
+      if (index + substring.length + 1 == 8)
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    }
+
+    // ascii input
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
+      u8 character = *(substring.value + substringIndex);
+      b8 disallowed[255] = {
+          [0x00 ... 0x1a] = 1,
+      };
+      if (disallowed[character])
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("."));
+      else {
+        struct string characterString = StringFromBuffer(&character, 1);
+        StringBuilderAppendString(sb, &characterString);
+      }
+    }
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+
+    if (!IsStringCursorAtEnd(&cursor))
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+  }
 }
 
 internalfn string_builder *
@@ -98,13 +191,156 @@ main(void)
 
   // setup
   u32 KILOBYTES = 1 << 10;
-  u8 stackBuffer[8 * KILOBYTES];
+  u32 MEGABYTES = 1 << 20;
+  u8 stackBuffer[1 * MEGABYTES];
   memory_arena stackMemory = {
       .block = stackBuffer,
       .total = ARRAY_COUNT(stackBuffer),
   };
 
-  string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
+  string_builder *sb = MakeStringBuilder(&stackMemory, 128 * KILOBYTES, 32);
+
+  // b8 HttpParserParse(struct http_parser *parser, struct string *httpResponse)
+  {
+    struct test_case {
+      struct string *httpResponse;
+      struct {
+        b8 value;
+        enum http_parser_error error;
+      } expected;
+    } testCases[] = {
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(""),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_PARTIAL,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.0"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_IS_NOT_HTTP_1_1,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/2.0"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_IS_NOT_HTTP_1_1,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 ABC"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 10"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1000 Custom"),
+            .expected =
+                {
+                    .value = 0,
+                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+                // Status-Line
+                "HTTP/1.1 200 "
+                "\r\n"
+                // Header Fields
+                // - General Header Fields
+                "Transfer-Encoding: chunked"
+                "\r\n"
+                // - Entity Header Fields
+                "Content-Type: application/json"
+                "\r\n"
+                // Message Body
+                // - Chunked Transfer Coding
+                "11"
+                "\r\n"
+                "{ \"a\": 97 }"
+                "\r\n"
+                // - Last Chunk
+                "0"
+                "\r\n"
+                "\r\n"
+                //
+                ),
+            .expected =
+                {
+                    .value = 1,
+                },
+        },
+    };
+
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
+
+      struct string *httpResponse = testCase->httpResponse;
+      b8 expectedValue = testCase->expected.value;
+      enum http_parser_error expectedError = testCase->expected.error;
+
+      struct http_parser parser;
+      HttpParserInit(&parser);
+
+      if (expectedValue == 1) {
+        u32 breakHere = 1;
+      }
+
+      b8 gotValue = HttpParserParse(&parser, httpResponse);
+      if (gotValue == expectedValue || (!expectedValue && parser.error == expectedError))
+        continue;
+
+      if (gotValue != expectedValue) {
+        errorCode =
+            expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+
+        StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+        StringBuilderAppendHexDump(sb, httpResponse);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        LogMessage(&errorMessage);
+      } else if (parser.error == expectedError) {
+        errorCode =
+            expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+
+        StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+        StringBuilderAppendHexDump(sb, httpResponse);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
+        StringBuilderAppendHttpParserError(sb, expectedError);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got error: "));
+        StringBuilderAppendHttpParserError(sb, parser.error);
+        struct string errorMessage = StringBuilderFlush(sb);
+        LogMessage(&errorMessage);
+      }
+    }
+  }
 
   return (int)errorCode;
 }

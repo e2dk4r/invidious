@@ -252,7 +252,6 @@ main(void)
   struct json_token jsonTokens[128];
   u32 jsonTokenCount;
   HttpParserMustBeJson(&parser, jsonTokens, ARRAY_COUNT(jsonTokens), &jsonTokenCount);
-  u32 breakHere = 1;
   if (HttpParserParse(&parser, &response)) {
     return 1;
   }

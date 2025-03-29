@@ -27,7 +27,7 @@ enum http_parser_flag {
 
 enum http_parser_error {
   HTTP_RESPONSE_IS_NOT_HTTP_1_1,
-  HTTP_RESPONSE_STATUS_CODE_WRONG,
+  HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
   HTTP_RESPONSE_STATUS_CODE_NOT_EXPECTED,
   HTTP_RESPONSE_PARTIAL,
   HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED,
@@ -143,9 +143,13 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
   }
 
   struct string statusCodeText = StringCursorConsumeSubstring(&cursor, 3);
+  if (statusCodeText.length != 3) {
+    parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
+    return 0;
+  }
   u16 statusCode;
   if (!ParseU64(&statusCodeText, (u64 *)&statusCode)) {
-    parser->error = HTTP_RESPONSE_STATUS_CODE_WRONG;
+    parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
     return 0;
   }
   if (IsHttpParserFlagSet(parser, HTTP_PARSER_CHECK_STATUS_CODE_FLAG) && statusCode != parser->statusCode) {
@@ -193,7 +197,7 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
    *                       | Last-Modified            ; Section 14.29
    */
 
-  while (!IsStringCursorRemainingEqualToCRLF(&cursor)) {
+  while (1) {
     if (IsStringCursorAtEnd(&cursor)) {
       parser->error = HTTP_RESPONSE_PARTIAL;
       return 0;
