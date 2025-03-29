@@ -1,4 +1,4 @@
-#include "log.h"
+#include "print.h"
 #include "string_builder.h"
 #include "string_cursor.h"
 
@@ -181,7 +181,7 @@ main(void)
         StringBuilderAppendBool(sb, got);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -268,7 +268,7 @@ main(void)
         StringBuilderAppendBool(sb, got);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -381,11 +381,11 @@ main(void)
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   } else {
-    LogMessage(&STRING_FROM_ZERO_TERMINATED(
+    PrintString(&STRING_FROM_ZERO_TERMINATED(
         "StringCursorAdvanceAfter() tests are skipped because IsStringCursorRemainingEqual() failed\n"));
   }
 
@@ -495,7 +495,7 @@ main(void)
         StringBuilderAppendPrintableString(sb, &got);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -608,7 +608,7 @@ main(void)
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -683,7 +683,7 @@ main(void)
         StringBuilderAppendPrintableString(sb, &got);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }

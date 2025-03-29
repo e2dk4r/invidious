@@ -1,5 +1,5 @@
 #include "json_parser.c"
-#include "log.h"
+#include "print.h"
 #include "string_builder.h"
 
 #define TEST_ERROR_LIST(XX)                                                                                            \
@@ -395,7 +395,7 @@ main(void)
         StringBuilderAppendU64(sb, tokenCount);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       } else {
         // if tokenCount is correct
 
@@ -466,7 +466,7 @@ main(void)
 
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
           struct string errorMessage = StringBuilderFlush(sb);
-          LogMessage(&errorMessage);
+          PrintString(&errorMessage);
         }
       }
 
@@ -668,7 +668,7 @@ main(void)
         StringBuilderAppendJsonParserError(sb, parser.error);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       } else if (totalTokenCount != expectedTokenCount) {
         errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
                                        : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
@@ -691,7 +691,7 @@ main(void)
         StringBuilderAppendU64(sb, totalTokenCount);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       } else {
         // if tokenCount is correct
 
@@ -772,7 +772,7 @@ main(void)
 
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
           struct string errorMessage = StringBuilderFlush(sb);
-          LogMessage(&errorMessage);
+          PrintString(&errorMessage);
         }
       }
 

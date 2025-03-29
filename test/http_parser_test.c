@@ -1,5 +1,5 @@
 #include "http_parser.c"
-#include "log.h"
+#include "print.h"
 #include "string_builder.h"
 
 #define TEST_ERROR_LIST(XX)                                                                                            \
@@ -323,7 +323,7 @@ main(void)
         StringBuilderAppendHexDump(sb, httpResponse);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       } else if (parser.error == expectedError) {
         errorCode =
             expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
@@ -336,8 +336,9 @@ main(void)
         StringBuilderAppendHttpParserError(sb, expectedError);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got error: "));
         StringBuilderAppendHttpParserError(sb, parser.error);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }

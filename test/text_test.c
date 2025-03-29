@@ -1,4 +1,4 @@
-#include "log.h"
+#include "print.h"
 #include "string_builder.h"
 #include "text.h"
 
@@ -153,7 +153,7 @@ main(void)
         StringBuilderAppendU64(sb, got.length);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -264,7 +264,7 @@ main(void)
         StringBuilderAppendBool(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -379,7 +379,7 @@ main(void)
         StringBuilderAppendBool(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -440,7 +440,7 @@ main(void)
         StringBuilderAppendBool(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -502,7 +502,7 @@ main(void)
         StringBuilderAppendBool(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -564,7 +564,7 @@ main(void)
         StringBuilderAppendBool(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -677,7 +677,7 @@ main(void)
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -834,7 +834,7 @@ main(void)
           StringBuilderAppendU64(sb, value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -890,7 +890,7 @@ main(void)
         StringBuilderAppendString(sb, &value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -1000,7 +1000,7 @@ main(void)
         StringBuilderAppendString(sb, &value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -1052,7 +1052,7 @@ main(void)
         StringBuilderAppendString(sb, &value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -1108,7 +1108,7 @@ main(void)
         StringBuilderAppendPrintableString(sb, &value);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       }
     }
   }
@@ -1241,7 +1241,7 @@ main(void)
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
-        LogMessage(&errorMessage);
+        PrintString(&errorMessage);
       } else {
         struct string *expectedSplits = testCase->expected.splits;
         struct string *splits = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*splits) * splitCount);
@@ -1268,7 +1268,7 @@ main(void)
             StringBuilderAppendPrintableString(sb, split);
             StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
             struct string errorMessage = StringBuilderFlush(sb);
-            LogMessage(&errorMessage);
+            PrintString(&errorMessage);
           }
         }
       }
