@@ -119,8 +119,10 @@ StringCursorExtractUntil(struct string_cursor *cursor, struct string *search)
   u64 index = 0;
   while (index < remaining.length) {
     struct string substring = StringFromBuffer(remaining.value + index, search->length);
-    if (search->length > remaining.length - index)
-      return result;
+    if (search->length > remaining.length - index) {
+      index = remaining.length;
+      break;
+    }
 
     if (IsStringEqual(&substring, search))
       break;

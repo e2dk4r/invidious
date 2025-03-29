@@ -429,8 +429,8 @@ main(void)
                     .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
-            .expected = {},
+            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
+            .expected = STRING_FROM_ZERO_TERMINATED("2"),
         },
         {
             .cursor =
@@ -449,6 +449,24 @@ main(void)
                 },
             .search = &STRING_FROM_ZERO_TERMINATED(".3"),
             .expected = STRING_FROM_ZERO_TERMINATED("2"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+                    .position = 0,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("012345"),
+            .expected = STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+                    .position = 2,
+                },
+            .search = &STRING_FROM_ZERO_TERMINATED("012345"),
+            .expected = STRING_FROM_ZERO_TERMINATED("cdefgh"),
         },
     };
 
