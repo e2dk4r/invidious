@@ -445,7 +445,7 @@ fi
 Log "================================================================"
 Log "Finished at $(date '+%Y-%m-%d %H:%M:%S')"
 
-if [ ! -e tags ] && [ $IsBuildDebug -eq 1 ]; then
+if [ $(command -v ctags) ] && [ ! -e tags ] && [ $IsBuildDebug -eq 1 ]; then
   src=""
   for file in "$OutputDir/3rdparty/mbedtls-$MBEDTLS_VERSION-install/include/mbedtls/*.h"; do
     src="$src $file"
