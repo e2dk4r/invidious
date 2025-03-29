@@ -1014,15 +1014,19 @@ main(void)
     } testCases[] = {
         {
             .input = 0x0,
-            .expected = STRING_FROM_ZERO_TERMINATED("0x00"),
+            .expected = STRING_FROM_ZERO_TERMINATED("00"),
         },
         {
             .input = 0x4,
-            .expected = STRING_FROM_ZERO_TERMINATED("0x04"),
+            .expected = STRING_FROM_ZERO_TERMINATED("04"),
+        },
+        {
+            .input = 0x0abc,
+            .expected = STRING_FROM_ZERO_TERMINATED("0abc"),
         },
         {
             .input = 0x00f2aa499b9028eaUL,
-            .expected = STRING_FROM_ZERO_TERMINATED("0x00f2aa499b9028ea"),
+            .expected = STRING_FROM_ZERO_TERMINATED("00f2aa499b9028ea"),
         },
         // TODO: fail cases for FormatHex()
     };

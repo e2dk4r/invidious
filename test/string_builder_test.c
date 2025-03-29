@@ -85,7 +85,7 @@ main(void)
   {
     StringBuilderAppendHex(sb, 252457880);
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("0x0f0c3398");
+    string *expected = &STRING_FROM_ZERO_TERMINATED("0f0c3398");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDHEX;
       goto end;
@@ -118,7 +118,7 @@ main(void)
     StringBuilderAppendF32(sb, 4.31f, 2);
 
     string value = StringBuilderFlush(sb);
-    string *expected = &STRING_FROM_ZERO_TERMINATED("abc ZYXTS 5439 0x0f0c3398 4.31");
+    string *expected = &STRING_FROM_ZERO_TERMINATED("abc ZYXTS 5439 0f0c3398 4.31");
     if (!IsStringEqual(&value, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDHEX;
       goto end;

@@ -508,26 +508,20 @@ static inline struct string
 FormatHex(struct string *stringBuffer, u64 value)
 {
   struct string result = {};
-  if (!stringBuffer || stringBuffer->length < 18)
+  if (!stringBuffer || stringBuffer->length < 2)
     return result;
 
   if (value == 0) {
     // edge case 0x00
     u8 *digit = stringBuffer->value;
     *digit++ = '0';
-    *digit++ = 'x';
-    *digit++ = '0';
     *digit++ = '0';
     result.value = stringBuffer->value;
-    result.length = 4;
+    result.length = 2;
     return result;
   }
 
   u64 index = 0;
-  stringBuffer->value[index] = '0';
-  index++;
-  stringBuffer->value[index] = 'x';
-  index++;
 
   // 1 - pick good width
   u64 width;
