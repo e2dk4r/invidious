@@ -273,7 +273,7 @@ IsDurationLessThan(struct duration *left, struct duration *right)
 }
 
 static inline b8
-IsDurationGraterThan(struct duration *left, struct duration *right)
+IsDurationGreaterThan(struct duration *left, struct duration *right)
 {
   return left->ns > right->ns;
 }

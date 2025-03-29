@@ -18,8 +18,8 @@
   XX(TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_FALSE, "Parsing duration string must fail")                               \
   XX(TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_TRUE, "lhs duration must be less then rhs")                        \
   XX(TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE, "lhs duration must NOT be less then rhs")                   \
-  XX(TEXT_TEST_ERROR_IS_DURATION_GRATER_THAN_EXPECTED_TRUE, "lhs duration must be grater then rhs")                    \
-  XX(TEXT_TEST_ERROR_IS_DURATION_GRATER_THAN_EXPECTED_FALSE, "lhs duration must NOT be grater then rhs")               \
+  XX(TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_TRUE, "lhs duration must be greater then rhs")                  \
+  XX(TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_FALSE, "lhs duration must NOT be greater then rhs")             \
   XX(TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_TRUE, "Parsing hexadecimal value must be successful")                          \
   XX(TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_FALSE, "Parsing hexadecimal value must fail")                                  \
   XX(TEXT_TEST_ERROR_FORMATU64_EXPECTED, "Formatting u64 value must be successful")                                    \
@@ -685,48 +685,54 @@ main(void)
   // IsDurationLessThan(struct duration *left, struct duration *right)
   // IsDurationGraterThan(struct duration *left, struct duration *right)
   {
-    struct duration left;
-    struct duration right;
-    b8 expectedLessThan;
-    b8 expectedGraterThan;
+    struct test_case {
+      struct duration left;
+      struct duration right;
+      b8 isLeftLess;
+      b8 isLeftGreater;
+    } testCases[] = {
+        {
+            .left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1},
+            .right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 5},
+            .isLeftLess = 1,
+            .isLeftGreater = 0,
+        },
+        {
+            .left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1},
+            .right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1},
+            .isLeftLess = 0,
+            .isLeftGreater = 0,
+        },
+        {
+            .left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 5},
+            .right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1},
+            .isLeftLess = 0,
+            .isLeftGreater = 1,
+        },
+    };
 
-    left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1};
-    right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 5};
-    expectedLessThan = 1;
-    if (IsDurationLessThan(&left, &right) != expectedLessThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_TRUE;
-      goto end;
-    }
-    expectedGraterThan = 0;
-    if (IsDurationGraterThan(&left, &right) != expectedGraterThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_GRATER_THAN_EXPECTED_FALSE;
-      goto end;
-    }
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
 
-    left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1};
-    right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1};
-    expectedLessThan = 0;
-    if (IsDurationLessThan(&left, &right) != expectedLessThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE;
-      goto end;
-    }
-    expectedGraterThan = 0;
-    if (IsDurationGraterThan(&left, &right) != expectedGraterThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_GRATER_THAN_EXPECTED_FALSE;
-      goto end;
-    }
+      struct duration *left = &testCase->left;
+      struct duration *right = &testCase->right;
+      b8 expectedGreaterThan = testCase->isLeftGreater;
+      b8 expectedLessThan = testCase->isLeftLess;
 
-    left = (struct duration){.ns = 1000000000ull /* 1e9 */ * 5};
-    right = (struct duration){.ns = 1000000000ull /* 1e9 */ * 1};
-    expectedLessThan = 0;
-    if (IsDurationLessThan(&left, &right) != expectedLessThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE;
-      goto end;
-    }
-    expectedGraterThan = 1;
-    if (IsDurationGraterThan(&left, &right) != expectedGraterThan) {
-      errorCode = TEXT_TEST_ERROR_IS_DURATION_GRATER_THAN_EXPECTED_TRUE;
-      goto end;
+      b8 gotGreaterThan = IsDurationGreaterThan(left, right);
+      b8 gotLessThan = IsDurationLessThan(left, right);
+
+      if (gotGreaterThan != expectedGreaterThan) {
+        errorCode = expectedGreaterThan ? TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_TRUE
+                                        : TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_FALSE;
+        goto end;
+      }
+
+      if (gotLessThan != expectedLessThan) {
+        errorCode = expectedLessThan ? TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_TRUE
+                                     : TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE;
+        goto end;
+      }
     }
   }
 
