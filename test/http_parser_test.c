@@ -184,6 +184,16 @@ MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLeng
   return sb;
 }
 
+internalfn struct json_parser *
+MakeJsonParser(memory_arena *arena, u32 tokenCount)
+{
+  struct json_token *tokens = MemoryArenaPushUnaligned(arena, sizeof(*tokens) * tokenCount);
+  struct json_parser *parser = MemoryArenaPushUnaligned(arena, sizeof(*parser));
+  parser->tokens = tokens;
+  parser->tokenMax = tokenCount;
+  return parser;
+}
+
 int
 main(void)
 {
@@ -207,6 +217,8 @@ main(void)
       struct {
         b8 value;
         enum http_parser_error error;
+        u32 tokenCount;
+        struct json_token *tokens;
       } expected;
     } testCases[] = {
         {
@@ -272,14 +284,14 @@ main(void)
                 "\r\n"
                 // Header Fields
                 // - General Header Fields
-                "Transfer-Encoding: chunked"
-                "\r\n"
                 // - Entity Header Fields
                 "Content-Type: application/json"
                 "\r\n"
+                "Transfer-Encoding: chunked"
+                "\r\n"
                 // Message Body
                 // - Chunked Transfer Coding
-                "11"
+                "b" // chunk size
                 "\r\n"
                 "{ \"a\": 97 }"
                 "\r\n"
@@ -292,11 +304,19 @@ main(void)
             .expected =
                 {
                     .value = 1,
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 78 + 0, .end = 78 + 11},
+                            {.type = JSON_TOKEN_STRING, .start = 78 + 3, .end = 78 + 4},
+                            {.type = JSON_TOKEN_STRING, .start = 78 + 7, .end = 78 + 9},
+                        },
                 },
         },
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      memory_temp tempMemory = MemoryTempBegin(&stackMemory);
       struct test_case *testCase = testCases + testCaseIndex;
 
       struct string *httpResponse = testCase->httpResponse;
@@ -305,13 +325,15 @@ main(void)
 
       struct http_parser parser;
       HttpParserInit(&parser);
+      struct json_parser *jsonParser = MakeJsonParser(tempMemory.arena, 128);
+      HttpParserMustBeJson(&parser, jsonParser);
 
       if (expectedValue == 1) {
         u32 breakHere = 1;
       }
 
       b8 gotValue = HttpParserParse(&parser, httpResponse);
-      if (gotValue == expectedValue || (!expectedValue && parser.error == expectedError))
+      if (gotValue == expectedValue && (!expectedValue && parser.error == expectedError))
         continue;
 
       if (gotValue != expectedValue) {
@@ -324,7 +346,7 @@ main(void)
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
-      } else if (parser.error == expectedError) {
+      } else if (parser.error != expectedError) {
         errorCode =
             expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
 
@@ -339,7 +361,73 @@ main(void)
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
+      } else {
+        u32 expectedTokenCount = testCase->expected.tokenCount;
+        u32 gotTokenCount = jsonParser->tokenCount;
+        if (gotTokenCount != expectedTokenCount) {
+          errorCode =
+              expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+
+          StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected json token count: "));
+          StringBuilderAppendU64(sb, expectedTokenCount);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got json token count: "));
+          StringBuilderAppendU64(sb, gotTokenCount);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          struct string errorMessage = StringBuilderFlush(sb);
+          PrintString(&errorMessage);
+        } else {
+          struct json_token *expectedTokens = testCase->expected.tokens;
+          struct json_token *gotTokens = jsonParser->tokens;
+          u32 wrongTokenCount = 0;
+
+          for (u32 tokenIndex = 0; tokenIndex < gotTokenCount; tokenIndex++) {
+            struct json_token *expectedToken = expectedTokens + tokenIndex;
+            struct json_token *gotToken = gotTokens + tokenIndex;
+            struct string expectedTokenString = JsonTokenExtractString(expectedToken, httpResponse);
+            struct string gotTokenString = JsonTokenExtractString(gotToken, httpResponse);
+
+            if (IsStringEqual(&gotTokenString, &expectedTokenString))
+              continue;
+
+            errorCode = expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                      : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+
+            if (wrongTokenCount == 0) {
+              StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+              StringBuilderAppendHexDump(sb, httpResponse);
+              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+            }
+
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected json token at index: "));
+            StringBuilderAppendU64(sb, tokenIndex);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    start: "));
+            StringBuilderAppendU64(sb, expectedToken->start);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end: "));
+            StringBuilderAppendU64(sb, expectedToken->end);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    string: "));
+            StringBuilderAppendPrintableString(sb, &expectedTokenString);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  got json token: "));
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    start: "));
+            StringBuilderAppendU64(sb, gotToken->start);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end: "));
+            StringBuilderAppendU64(sb, gotToken->end);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    string: "));
+            StringBuilderAppendPrintableString(sb, &gotTokenString);
+            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+            struct string errorMessage = StringBuilderFlush(sb);
+            PrintString(&errorMessage);
+
+            wrongTokenCount++;
+          }
+        }
       }
+
+      MemoryTempEnd(&tempMemory);
     }
   }
 

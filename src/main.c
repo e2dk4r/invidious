@@ -249,9 +249,11 @@ main(void)
   struct http_parser parser;
   HttpParserInit(&parser);
   HttpParserMustHaveStatusCode(&parser, 200);
+
   struct json_token jsonTokens[128];
+  struct json_parser jsonParser = JsonParser(jsonTokens, ARRAY_COUNT(jsonTokens));
   u32 jsonTokenCount;
-  HttpParserMustBeJson(&parser, jsonTokens, ARRAY_COUNT(jsonTokens), &jsonTokenCount);
+  HttpParserMustBeJson(&parser, &jsonParser);
   if (HttpParserParse(&parser, &response)) {
     return 1;
   }
