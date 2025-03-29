@@ -64,6 +64,9 @@ for i in "$@"; do
     "--disable-$PROJECT_NAME")
       IsBuildEnabled=0
       ;;
+    --disable-test|--disable-tests)
+      IsTestsEnabled=0
+      ;;
     --force-build-mbedtls)
       FORCE_BUILD_MBEDTLS=1
       ;;

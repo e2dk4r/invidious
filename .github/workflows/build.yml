@@ -25,7 +25,7 @@ jobs:
       run: sudo apt-get install -y --no-install-recommends --no-install-suggests
            libmbedtls-dev
     - name: build
-      run: CC=gcc ./build.sh
+      run: CC=gcc ./build.sh --disable-test
 
   test:
 
