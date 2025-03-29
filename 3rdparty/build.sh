@@ -26,7 +26,7 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
   fi
 
   StartTimer
-  tar --cd "$outputDir" --extract --file "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
+  tar -C "$outputDir" -xf "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
   Log "  Extracted in $(StopTimer) seconds"
 
   # TODO: Configure Mbed TLS
