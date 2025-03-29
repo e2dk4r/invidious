@@ -1,5 +1,6 @@
 #!/bin/sh
 # vi: set et ft=sh ts=2 sw=2 fenc=utf-8 :vi
+set -e
 export LC_ALL=C
 export TZ=UTC
 
@@ -434,6 +435,7 @@ if [ $IsBuildEnabled -eq 1 ]; then
 fi
 
 if [ $IsTestsEnabled -eq 1 ]; then
+  set +e
   . "$ProjectRoot/test/build.sh"
 fi
 
