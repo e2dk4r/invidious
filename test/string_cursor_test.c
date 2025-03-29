@@ -588,7 +588,6 @@ main(void)
       struct string_cursor *cursor = &testCase->cursor;
       struct string *search = testCase->search;
 
-      u32 breakHere = 1;
       struct string got = StringCursorExtractThrough(cursor, search);
       if (!IsStringEqual(&got, expected)) {
         errorCode = STRING_CURSOR_TEST_ERROR_EXTRACT_THROUGH_EXPECTED;

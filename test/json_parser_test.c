@@ -637,10 +637,6 @@ main(void)
       struct json_token *tokens = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*tokens) * allocatedTokenCount);
       struct json_parser parser = JsonParser(tokens, allocatedTokenCount);
 
-      if (testCaseIndex == 2) {
-        u32 breakHere = 1;
-      }
-
       u32 totalTokenCount = 0;
       for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
         struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
