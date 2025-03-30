@@ -141,7 +141,7 @@ main(void)
   // Send an HTTP Request
   StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("GET "));
   StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("/api/v1/videos/"));
-  struct string videoId = STRING_FROM_ZERO_TERMINATED("IroPQ150F6c");
+  struct string videoId = STRING_FROM_ZERO_TERMINATED("d_oVysaqG_0");
   StringBuilderAppendString(sb, &videoId);
   StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" HTTP/1.1"));
   StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\r\n"));
@@ -251,24 +251,41 @@ main(void)
   HttpParserInit(&parser);
   HttpParserMustHaveStatusCode(&parser, 200);
 
-  struct json_token jsonTokens[128];
-  struct json_parser jsonParser = JsonParser(jsonTokens, ARRAY_COUNT(jsonTokens));
-  u32 jsonTokenCount;
-  HttpParserMustBeJson(&parser, &jsonParser);
-  if (HttpParserParse(&parser, &response)) {
+  struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 1024);
+  HttpParserMustBeJson(&parser, jsonParser);
+
+  u32 breakHere = 1;
+  if (!HttpParserParse(&parser, &response)) {
     return 1;
   }
 
-#if 0
-  for (u32 index = 0; index < jsonTokenCount; index++) {
-    json_token jsonToken = jsonTokens + index;
-    if jsonToken is object
-      index++
-      jsonToken = jsonTokens + index;
-      
-      if 
+  if (jsonParser->tokenCount == 0)
+    return 1;
+
+  if (jsonParser->tokens[0].type != JSON_TOKEN_OBJECT)
+    return 1;
+
+  for (u32 jsonTokenIndex = 1; jsonTokenIndex < jsonParser->tokenCount; jsonTokenIndex++) {
+    struct json_token *jsonToken = jsonParser->tokens + jsonTokenIndex;
+    if (jsonToken->type != JSON_TOKEN_STRING)
+      continue;
+
+    struct json_token *keyToken = jsonToken;
+    struct string key = JsonTokenExtractString(keyToken, &response);
+
+    if (IsStringEqual(&key, &STRING_FROM_ZERO_TERMINATED("title"))) {
+      struct json_token *valueToken = jsonParser->tokens + jsonTokenIndex;
+      jsonTokenIndex++;
+      struct string value = JsonTokenExtractString(valueToken, &response);
+
+      StringBuilderAppendString(sb, &key);
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" is "));
+      StringBuilderAppendString(sb, &value);
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+    }
   }
-#endif
 
   return 0;
 }

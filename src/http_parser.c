@@ -226,16 +226,7 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
     }
     StringCursorAdvanceAfter(&cursor, &STRING_FROM_ZERO_TERMINATED(": "));
     struct string headerValue = StringCursorConsumeUntilCRLF(&cursor);
-
-    // https://www.rfc-editor.org/rfc/rfc2616#section-14.41
-    if (IsStringEqualIgnoreCase(&headerField, &STRING_FROM_ZERO_TERMINATED("Transfer-Encoding"))) {
-      struct string transferEncoding = headerValue;
-      if (!IsStringEqualIgnoreCase(&transferEncoding, &STRING_FROM_ZERO_TERMINATED("chunked"))) {
-        parser->error = HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED;
-        return 0;
-      }
-      break;
-    }
+    StringCursorAdvanceAfterCRLF(&cursor);
 
     // https://www.rfc-editor.org/rfc/rfc2616#section-14.17
     if (IsStringEqualIgnoreCase(&headerField, &STRING_FROM_ZERO_TERMINATED("Content-Type"))) {
@@ -247,10 +238,21 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
       }
     }
 
-    StringCursorAdvanceAfterCRLF(&cursor);
+    // https://www.rfc-editor.org/rfc/rfc2616#section-14.41
+    if (IsStringEqualIgnoreCase(&headerField, &STRING_FROM_ZERO_TERMINATED("Transfer-Encoding"))) {
+      struct string transferEncoding = headerValue;
+      if (!IsStringEqualIgnoreCase(&transferEncoding, &STRING_FROM_ZERO_TERMINATED("chunked"))) {
+        parser->error = HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED;
+        return 0;
+      }
+      break;
+    }
   }
 
-  if (!StringCursorAdvanceAfterCRLF(&cursor)) {
+  // TODO: check next 2 bytes if it is CRLF.
+  // see: https://www.rfc-editor.org/rfc/rfc2616#section-6 "6. Response"
+
+  if (IsStringCursorAtEnd(&cursor) || !StringCursorAdvanceAfterCRLF(&cursor)) {
     parser->error = HTTP_RESPONSE_PARTIAL;
     return 0;
   }
@@ -298,6 +300,7 @@ HttpParserParse(struct http_parser *parser, struct string *httpResponse)
     u32 parsedTokenCount = JsonParse(jsonParser, &chunkData);
 
     // TODO: Handle json parse errors
+    debug_assert(jsonParser->error == JSON_PARSER_ERROR_NONE || jsonParser->error == JSON_PARSER_ERROR_PARTIAL);
 
     // Adjust json token positions to where in http response
     // This is because json parser thinks we store json as sequential in memory.

@@ -400,7 +400,6 @@ main(void)
             .cursor =
                 {
                     .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
-                    .position = 0,
                 },
             .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
             .expected = {},
@@ -409,7 +408,6 @@ main(void)
             .cursor =
                 {
                     .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
-                    .position = 0,
                 },
             .search = &STRING_FROM_ZERO_TERMINATED("Ipsum"),
             .expected = STRING_FROM_ZERO_TERMINATED("Lorem "),
@@ -418,7 +416,6 @@ main(void)
             .cursor =
                 {
                     .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
-                    .position = 0,
                 },
             .search = &STRING_FROM_ZERO_TERMINATED(".2"),
             .expected = STRING_FROM_ZERO_TERMINATED("1"),
@@ -436,7 +433,6 @@ main(void)
             .cursor =
                 {
                     .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
-                    .position = 0,
                 },
             .search = &STRING_FROM_ZERO_TERMINATED(".3"),
             .expected = STRING_FROM_ZERO_TERMINATED("1.2"),
@@ -454,7 +450,6 @@ main(void)
             .cursor =
                 {
                     .source = &STRING_FROM_ZERO_TERMINATED("abcdefgh"),
-                    .position = 0,
                 },
             .search = &STRING_FROM_ZERO_TERMINATED("012345"),
             .expected = STRING_FROM_ZERO_TERMINATED("abcdefgh"),

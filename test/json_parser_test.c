@@ -170,6 +170,26 @@ main(void)
                 },
         },
         {
+            // '{ "Lorem": "ipsum \"dolor\"" }'
+            .json = &STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
+            .expected =
+                {
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 30},
+                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 8},
+                            {.type = JSON_TOKEN_STRING, .start = 12, .end = 27},
+                        },
+                    .strings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
+                            STRING_FROM_ZERO_TERMINATED("Lorem"),
+                            STRING_FROM_ZERO_TERMINATED("ipsum \\\"dolor\\\""),
+                        },
+                },
+        },
+        {
             .json = &STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\", \"dolor\": \"sit\" }"),
             .expected =
                 {
@@ -381,6 +401,7 @@ main(void)
 
       struct json_token *tokens = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*tokens) * allocatedTokenCount);
       struct json_parser parser = JsonParser(tokens, allocatedTokenCount);
+
       u32 tokenCount = JsonParse(&parser, json);
       if (tokenCount != expectedTokenCount) {
         errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE

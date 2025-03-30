@@ -184,16 +184,6 @@ MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLeng
   return sb;
 }
 
-internalfn struct json_parser *
-MakeJsonParser(memory_arena *arena, u32 tokenCount)
-{
-  struct json_token *tokens = MemoryArenaPushUnaligned(arena, sizeof(*tokens) * tokenCount);
-  struct json_parser *parser = MemoryArenaPushUnaligned(arena, sizeof(*parser));
-  parser->tokens = tokens;
-  parser->tokenMax = tokenCount;
-  return parser;
-}
-
 int
 main(void)
 {
@@ -279,37 +269,29 @@ main(void)
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED(
-                // Status-Line
-                "HTTP/1.1 200 "
-                "\r\n"
-                // Header Fields
-                // - General Header Fields
-                // - Entity Header Fields
-                "Content-Type: application/json"
-                "\r\n"
-                "Transfer-Encoding: chunked"
-                "\r\n"
-                // Message Body
-                // - Chunked Transfer Coding
-                "b" // chunk size
-                "\r\n"
-                "{ \"a\": 97 }"
-                "\r\n"
-                // - Last Chunk
-                "0"
-                "\r\n"
-                "\r\n"
-                //
-                ),
+#define CRLF "\r\n"
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Transfer-Encoding: chunked" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                //// first chunk size (format: hex digits)
+                /**/ "b" CRLF
+                //// first chunk data
+                /**/ "{ \"a\": 97 }" CRLF
+                //// Last chunk
+                /**/ "0" CRLF CRLF),
             .expected =
                 {
                     .value = 1,
                     .tokenCount = 3,
                     .tokens =
                         (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 78 + 0, .end = 78 + 11},
-                            {.type = JSON_TOKEN_STRING, .start = 78 + 3, .end = 78 + 4},
-                            {.type = JSON_TOKEN_STRING, .start = 78 + 7, .end = 78 + 9},
+                            {.type = JSON_TOKEN_OBJECT, .start = 82 + 0, .end = 82 + 11},
+                            {.type = JSON_TOKEN_STRING, .start = 82 + 3, .end = 82 + 4},
+                            {.type = JSON_TOKEN_STRING, .start = 82 + 7, .end = 82 + 9},
                         },
                 },
         },
