@@ -10,6 +10,7 @@
 #include <mbedtls/net_sockets.h>
 
 #include "memory.h"
+#include "print.h"
 #include "string_builder.h"
 #include "text.h"
 #include "type.h"
@@ -133,7 +134,7 @@ main(void)
     StringBuilderAppendMbedtlsError(sb, mbedtlsError);
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
     struct string message = StringBuilderFlush(sb);
-    write(STDOUT_FILENO, message.value, message.length);
+    PrintString(&message);
     return 1;
   }
 
@@ -165,7 +166,7 @@ main(void)
         StringBuilderAppendMbedtlsError(sb, mbedtlsError);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string message = StringBuilderFlush(sb);
-        write(STDOUT_FILENO, message.value, message.length);
+        PrintString(&message);
         return 1;
       }
 
@@ -198,7 +199,7 @@ main(void)
         StringBuilderAppendMbedtlsError(sb, mbedtlsError);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string message = StringBuilderFlush(sb);
-        write(STDOUT_FILENO, message.value, message.length);
+        PrintString(&message);
         return 1;
       }
 
@@ -221,7 +222,7 @@ main(void)
     StringBuilderAppendU64(sb, response.length);
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
     struct string message = StringBuilderFlush(sb);
-    write(STDOUT_FILENO, message.value, message.length);
+    PrintString(&message);
   }
 
   // Parse HTTP Response
@@ -238,10 +239,10 @@ main(void)
     struct string *httpField = httpFields + httpFieldIndex;
     if (IsStringEqualIgnoreCase(httpField, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 200 OK"))) {
       struct string message = STRING_FROM_ZERO_TERMINATED("OK\n");
-      write(STDOUT_FILENO, message.value, message.length);
+      PrintString(&message);
     } else if (IsStringEqualIgnoreCase(httpField, &STRING_FROM_ZERO_TERMINATED("content-type: application/json"))) {
       struct string message = STRING_FROM_ZERO_TERMINATED("json\n");
-      write(STDOUT_FILENO, message.value, message.length);
+      PrintString(&message);
     }
   }
 #endif
