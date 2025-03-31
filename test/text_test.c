@@ -602,6 +602,14 @@ main(void)
             .string = STRING_FROM_ZERO_TERMINATED("\n\t\v\f"),
             .expected = {},
         },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED("abc"),
+            .expected = STRING_FROM_ZERO_TERMINATED("abc"),
+        },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED("123 456"),
+            .expected = STRING_FROM_ZERO_TERMINATED("123 456"),
+        },
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
