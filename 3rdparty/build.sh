@@ -5,6 +5,8 @@ fi
 
 MBEDTLS_VERSION=3.6.2
 MBEDTLS_DIR="$outputDir/mbedtls-$MBEDTLS_VERSION"
+MBEDTLS_SRC="$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
+MBEDTLS_SRC_B2SUM=dbf34ca3cffca7a9bdb10191bd58971583ae3f2cdef3e350ccda08eae2e7b52f5fd4d1aff5582ee120b6e35e6843d7dd323ba7da5f1428c16130e5ed7c0d689e
 
 Log "Mbed TLS:"
 Log "  Version: $MBEDTLS_VERSION"
@@ -15,18 +17,21 @@ if [ -d "$MBEDTLS_DIR-install" ] && [ "$FORCE_BUILD_MBEDTLS" -eq 0 ]; then
 fi
 
 if [ $isMbedtlsBuilt -eq 0 ]; then
-  StartTimer
-  Log "  Starting download"
-  Download "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$MBEDTLS_VERSION/mbedtls-$MBEDTLS_VERSION.tar.bz2" "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
-  Log "  Downloaded in $(StopTimer) seconds"
+  if [ ! -e "$MBEDTLS_SRC" ]; then
+    StartTimer
+    Log "  Starting download"
+    Download "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$MBEDTLS_VERSION/mbedtls-$MBEDTLS_VERSION.tar.bz2" "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
+    Log "  Downloaded in $(StopTimer) seconds"
+  fi
 
-  if [ $(HashCheckB2 "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2" dbf34ca3cffca7a9bdb10191bd58971583ae3f2cdef3e350ccda08eae2e7b52f5fd4d1aff5582ee120b6e35e6843d7dd323ba7da5f1428c16130e5ed7c0d689e) -eq 0 ]; then
+  if [ $(HashCheckB2 "$MBEDTLS_SRC" "$MBEDTLS_SRC_B2SUM" ) -eq 0 ]; then
     echo "Mbed TLS hash check failed"
+    echo "  You need to remove '$MBEDTLS_SRC' for re-download"
     exit 1
   fi
 
   StartTimer
-  tar -C "$outputDir" -xf "$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
+  tar -C "$outputDir" -xf "$MBEDTLS_SRC"
   Log "  Extracted in $(StopTimer) seconds"
 
   # TODO: Configure Mbed TLS
