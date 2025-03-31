@@ -206,6 +206,7 @@ main(void)
       u64 bytesRead = (u64)ret;
       if (bytesRead == 0)
         break; // EOF
+
       struct string packet = StringFromBuffer(responseBuffer + totalBytesRead, bytesRead);
       totalBytesRead += bytesRead;
 
@@ -247,6 +248,7 @@ main(void)
   }
 #endif
 
+#if 0
   struct http_parser parser;
   HttpParserInit(&parser);
   HttpParserMustHaveStatusCode(&parser, 200);
@@ -286,6 +288,7 @@ main(void)
       PrintString(&message);
     }
   }
+#endif
 
   return 0;
 }

@@ -50,18 +50,20 @@ internalfn void
 StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error error)
 {
   struct string httpParserErrorTexts[] = {
-      [HTTP_RESPONSE_IS_NOT_HTTP_1_1] = STRING_FROM_ZERO_TERMINATED("response is not HTTP 1.1"),
-      [HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER] =
-          STRING_FROM_ZERO_TERMINATED("status code is not 3 digit integer"),
-      [HTTP_RESPONSE_STATUS_CODE_NOT_EXPECTED] = STRING_FROM_ZERO_TERMINATED("status code is not what is expected"),
-      [HTTP_RESPONSE_PARTIAL] = STRING_FROM_ZERO_TERMINATED("response is partial"),
-      [HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED] =
-          STRING_FROM_ZERO_TERMINATED("response is not chunked transfer encoded"),
-      [HTTP_RESPONSE_CONTENT_TYPE_NOT_EXPECTED] = STRING_FROM_ZERO_TERMINATED("content type is not what is expected"),
-      [HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_SIZE_IS_NOT_HEX] =
-          STRING_FROM_ZERO_TERMINATED("chunk size is not hexadecimal"),
-      [HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_DATA_MALFORMED] =
-          STRING_FROM_ZERO_TERMINATED("chunk data is malformed"),
+      [HTTP_PARSER_ERROR_NONE] = STRING_FROM_ZERO_TERMINATED("None"),
+      [HTTP_PARSER_ERROR_HTTP_VERSION_INVALID] = STRING_FROM_ZERO_TERMINATED("HTTP version is invalid"),
+      [HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1] = STRING_FROM_ZERO_TERMINATED("HTTP version 1.1 is expected"),
+      [HTTP_PARSER_ERROR_STATUS_CODE_INVALID] = STRING_FROM_ZERO_TERMINATED("Status code is invalid"),
+      [HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER] =
+          STRING_FROM_ZERO_TERMINATED("Status code must be 3-digit integer"),
+      [HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999] =
+          STRING_FROM_ZERO_TERMINATED("Status code must be [100, 999]"),
+      [HTTP_PARSER_ERROR_REASON_PHRASE_INVALID] = STRING_FROM_ZERO_TERMINATED("Reason phrase is invalid"),
+      [HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field name is required"),
+      [HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field value is required"),
+      [HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID] = STRING_FROM_ZERO_TERMINATED("Chunk size is invalid"),
+      [HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED] = STRING_FROM_ZERO_TERMINATED("Chunk data is malformed"),
+      [HTTP_PARSER_ERROR_PARTIAL] = STRING_FROM_ZERO_TERMINATED("Partial response"),
   };
   struct string *httpParserErrorText = httpParserErrorTexts + (u32)error;
   StringBuilderAppendString(sb, httpParserErrorText);
@@ -202,74 +204,118 @@ main(void)
 
   // b8 HttpParserParse(struct http_parser *parser, struct string *httpResponse)
   {
+    u32 maxHttpTokenCount = 128;
+    u32 maxJsonTokenCount = 128;
+
     struct test_case {
       struct string *httpResponse;
       struct {
-        b8 value;
         enum http_parser_error error;
-        u32 tokenCount;
-        struct json_token *tokens;
+        u32 httpTokenCount;
+        struct http_token *httpTokens;
+        struct string *httpTokenStrings;
+        struct string *content;
       } expected;
     } testCases[] = {
+#define CRLF "\r\n"
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED(""),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_PARTIAL,
+                    .error = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.0"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_IS_NOT_HTTP_1_1,
+                    .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/2.0"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_IS_NOT_HTTP_1_1,
+                    .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 ABC"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                    .error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                    .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 10"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                    .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1000 Custom"),
             .expected =
                 {
-                    .value = 0,
-                    .error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
+                    .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 200 " CRLF),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_REASON_PHRASE_INVALID,
                 },
         },
         {
             .httpResponse = &STRING_FROM_ZERO_TERMINATED(
-#define CRLF "\r\n"
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Transfer-Encoding: chunked" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                //// first chunk size (format: hex digits)
+                /**/ "THIS IS NOT HEX" CRLF
+                //// first chunk data
+                /**/ "[ 1, 2, 3 ]" CRLF
+                //// Last chunk
+                /**/ "0" CRLF CRLF),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Transfer-Encoding: chunked" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                //// first chunk size (format: hex digits)
+                /**/ "9" CRLF
+                //// first chunk data
+                /**/ "[ 1, 2, 3 ]" CRLF
+                //// Last chunk
+                /**/ "0" CRLF CRLF),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -280,133 +326,235 @@ main(void)
                 //// first chunk size (format: hex digits)
                 /**/ "b" CRLF
                 //// first chunk data
-                /**/ "{ \"a\": 97 }" CRLF
+                /**/ "[ 1, 2, 3 ]" CRLF
                 //// Last chunk
                 /**/ "0" CRLF CRLF),
             .expected =
                 {
-                    .value = 1,
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 82 + 0, .end = 82 + 11},
-                            {.type = JSON_TOKEN_STRING, .start = 82 + 3, .end = 82 + 4},
-                            {.type = JSON_TOKEN_STRING, .start = 82 + 7, .end = 82 + 9},
+                    .error = HTTP_PARSER_ERROR_NONE,
+                    .httpTokenCount = 6,
+                    .httpTokens =
+                        // LEFTOFF: Below tests expectations are wrong.
+                    (struct http_token[]){
+                        {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
+                        {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 0x1f, .end = 0x2f},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_ENCODING, .start = 0x54, .end = 0x5a},
+                        {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 0x5f, .end = 0x60},
+                        {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x62, .end = 0x6d},
+                    },
+                    .httpTokenStrings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
+                            STRING_FROM_ZERO_TERMINATED("200"),
+                            STRING_FROM_ZERO_TERMINATED("application/json"),
+                            STRING_FROM_ZERO_TERMINATED("chunked"),
+                            STRING_FROM_ZERO_TERMINATED("b"),
+                            STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
                         },
+                    .content = &STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
                 },
         },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Transfer-Encoding: chunked" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                //// first chunk size (format: hex digits)
+                /**/ "c" CRLF
+                //// first chunk data
+                /**/ "[ 4029, 2104" CRLF
+                //// second chunk size (format: hex digits)
+                /**/ "9" CRLF
+                //// second chunk data
+                /**/ "9342, 0 ]" CRLF
+                //// Last chunk
+                /**/ "0" CRLF CRLF),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_NONE,
+                    .httpTokenCount = 8,
+                    .httpTokens =
+                        (struct http_token[]){
+                            {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0, .end = 8},
+                            {.type = HTTP_TOKEN_STATUS_CODE, .start = 9, .end = 12},
+                            {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 31, .end = 47},
+                            {.type = HTTP_TOKEN_HEADER_CONTENT_ENCODING, .start = 68, .end = 75},
+                            {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 79, .end = 80},
+                            {.type = HTTP_TOKEN_CHUNK_DATA, .start = 82, .end = 94},
+                            {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 79, .end = 80},
+                            {.type = HTTP_TOKEN_CHUNK_DATA, .start = 82, .end = 93},
+                        },
+                    .httpTokenStrings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
+                            STRING_FROM_ZERO_TERMINATED("200"),
+                            STRING_FROM_ZERO_TERMINATED("application/json"),
+                            STRING_FROM_ZERO_TERMINATED("chunked"),
+                            STRING_FROM_ZERO_TERMINATED("b"),
+                            STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
+                            STRING_FROM_ZERO_TERMINATED("9"),
+                            STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
+                        },
+                    .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
+                },
+        },
+#undef CRLF
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      u32 failedTestCount = 0;
+
       memory_temp tempMemory = MemoryTempBegin(&stackMemory);
       struct test_case *testCase = testCases + testCaseIndex;
 
       struct string *httpResponse = testCase->httpResponse;
-      b8 expectedValue = testCase->expected.value;
+      struct http_parser *httpParser = MakeHttpParser(tempMemory.arena, maxHttpTokenCount);
+
       enum http_parser_error expectedError = testCase->expected.error;
-
-      struct http_parser parser;
-      HttpParserInit(&parser);
-      struct json_parser *jsonParser = MakeJsonParser(tempMemory.arena, 128);
-      HttpParserMustBeJson(&parser, jsonParser);
-
-      if (expectedValue == 1) {
+      if (expectedError == HTTP_PARSER_ERROR_NONE) {
         u32 breakHere = 1;
       }
 
-      b8 gotValue = HttpParserParse(&parser, httpResponse);
-      if (gotValue == expectedValue && (!expectedValue && parser.error == expectedError))
-        continue;
+      u32 httpTokenCount = HttpParse(httpParser, httpResponse);
 
-      if (gotValue != expectedValue) {
-        errorCode =
-            expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
-        StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-        StringBuilderAppendHexDump(sb, httpResponse);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```\n"));
-        struct string errorMessage = StringBuilderFlush(sb);
-        PrintString(&errorMessage);
-      } else if (parser.error != expectedError) {
-        errorCode =
-            expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
-        StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-        StringBuilderAppendHexDump(sb, httpResponse);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
-        StringBuilderAppendHttpParserError(sb, expectedError);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got error: "));
-        StringBuilderAppendHttpParserError(sb, parser.error);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-        struct string errorMessage = StringBuilderFlush(sb);
-        PrintString(&errorMessage);
-      } else {
-        u32 expectedTokenCount = testCase->expected.tokenCount;
-        u32 gotTokenCount = jsonParser->tokenCount;
-        if (gotTokenCount != expectedTokenCount) {
-          errorCode =
-              expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
+      // Test http parser error
+      enum http_parser_error gotError = httpParser->error;
+      if (gotError != expectedError) {
+        errorCode = expectedError == HTTP_PARSER_ERROR_NONE ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                                            : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+        if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
           StringBuilderAppendHexDump(sb, httpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected json token count: "));
-          StringBuilderAppendU64(sb, expectedTokenCount);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got json token count: "));
-          StringBuilderAppendU64(sb, gotTokenCount);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-          struct string errorMessage = StringBuilderFlush(sb);
-          PrintString(&errorMessage);
-        } else {
-          struct json_token *expectedTokens = testCase->expected.tokens;
-          struct json_token *gotTokens = jsonParser->tokens;
-          u32 wrongTokenCount = 0;
-
-          for (u32 tokenIndex = 0; tokenIndex < gotTokenCount; tokenIndex++) {
-            struct json_token *expectedToken = expectedTokens + tokenIndex;
-            struct json_token *gotToken = gotTokens + tokenIndex;
-            struct string expectedTokenString = JsonTokenExtractString(expectedToken, httpResponse);
-            struct string gotTokenString = JsonTokenExtractString(gotToken, httpResponse);
-
-            if (IsStringEqual(&gotTokenString, &expectedTokenString))
-              continue;
-
-            errorCode = expectedValue ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                      : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
-            if (wrongTokenCount == 0) {
-              StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-              StringBuilderAppendHexDump(sb, httpResponse);
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
-            }
-
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected json token at index: "));
-            StringBuilderAppendU64(sb, tokenIndex);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    start: "));
-            StringBuilderAppendU64(sb, expectedToken->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end: "));
-            StringBuilderAppendU64(sb, expectedToken->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    string: "));
-            StringBuilderAppendPrintableString(sb, &expectedTokenString);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  got json token: "));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    start: "));
-            StringBuilderAppendU64(sb, gotToken->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end: "));
-            StringBuilderAppendU64(sb, gotToken->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    string: "));
-            StringBuilderAppendPrintableString(sb, &gotTokenString);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-            struct string errorMessage = StringBuilderFlush(sb);
-            PrintString(&errorMessage);
-
-            wrongTokenCount++;
-          }
         }
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
+        StringBuilderAppendHttpParserError(sb, expectedError);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  got error: "));
+        StringBuilderAppendHttpParserError(sb, gotError);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
+        continue;
+      }
+
+      // If error expected, do not test other information
+      if (expectedError != HTTP_PARSER_ERROR_NONE)
+        continue;
+
+      // Test http token count
+      u32 expectedHttpTokenCount = testCase->expected.httpTokenCount;
+      u32 gotHttpTokenCount = httpTokenCount;
+      if (gotHttpTokenCount != expectedHttpTokenCount) {
+        errorCode = expectedError == HTTP_PARSER_ERROR_NONE ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                                            : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+        }
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected http token count: "));
+        StringBuilderAppendU64(sb, expectedHttpTokenCount);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                        got: "));
+        StringBuilderAppendU64(sb, gotHttpTokenCount);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
+        continue;
+      }
+
+      // Test every http token
+      b8 failedHttpTokenTest = 0;
+      for (u32 httpTokenIndex = 0; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
+        struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+        struct http_token *expectedHttpToken = testCase->expected.httpTokens + httpTokenIndex;
+
+        if (httpToken->start == expectedHttpToken->start && httpToken->end == expectedHttpToken->end)
+          continue;
+
+        errorCode = expectedError == HTTP_PARSER_ERROR_NONE ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                                            : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+        }
+
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected http token start: "));
+        StringBuilderAppendU64(sb, expectedHttpToken->start);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" and end: "));
+        StringBuilderAppendU64(sb, expectedHttpToken->end);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index: "));
+        StringBuilderAppendU64(sb, httpTokenIndex);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string *expectedString = testCase->expected.httpTokenStrings + httpTokenIndex;
+        StringBuilderAppendHexDump(sb, expectedString);
+
+        debug_assert(expectedString->length == expectedHttpToken->end - expectedHttpToken->start &&
+                     "Check your test cases, you got this one wrong");
+
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n              but got start: "));
+        StringBuilderAppendU64(sb, httpToken->start);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" and end: "));
+        StringBuilderAppendU64(sb, httpToken->end);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string gotString = HttpTokenExtractString(httpToken, httpResponse);
+        StringBuilderAppendHexDump(sb, &gotString);
+
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
+        failedHttpTokenTest = 1;
+      }
+
+      if (failedHttpTokenTest)
+        continue;
+
+      // Test extracting response data from HTTP response
+      u32 maxContentLength = 128;
+      string_builder *contentBuilder = MakeStringBuilder(tempMemory.arena, maxContentLength, 0);
+      for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
+        struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+        if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+          continue;
+        struct string data = HttpTokenExtractString(httpToken, httpResponse);
+        StringBuilderAppendString(contentBuilder, &data);
+      }
+
+      struct string content = StringBuilderFlush(contentBuilder);
+      struct string *expectedContent = testCase->expected.content;
+      if (!IsStringEqual(&content, expectedContent)) {
+        errorCode = expectedError == HTTP_PARSER_ERROR_NONE ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
+                                                            : HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
+          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
+        }
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected content to be:\n"));
+        StringBuilderAppendHexDump(sb, expectedContent);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                 but got:\n"));
+        StringBuilderAppendHexDump(sb, &content);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
+        continue;
       }
 
       MemoryTempEnd(&tempMemory);
