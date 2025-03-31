@@ -14,6 +14,8 @@
   XX(TEXT_TEST_ERROR_IS_STRING_STARTS_WITH_EXPECTED_FALSE, "String must NOT start with search string")                 \
   XX(TEXT_TEST_ERROR_IS_STRING_ENDS_WITH_EXPECTED_TRUE, "String must end with search string")                          \
   XX(TEXT_TEST_ERROR_IS_STRING_ENDS_WITH_EXPECTED_FALSE, "String must NOT end with search string")                     \
+  XX(TEXT_TEST_ERROR_STRIP_WHITESPACE_EXPECTED_STRING, "Stripping string from whitespace must return new string")      \
+  XX(TEXT_TEST_ERROR_STRIP_WHITESPACE_EXPECTED_NULL, "Stripping string from whitespace must return null")              \
   XX(TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_TRUE, "Parsing duration string must be successful")                       \
   XX(TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_FALSE, "Parsing duration string must fail")                               \
   XX(TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_TRUE, "lhs duration must be less then rhs")                        \
@@ -567,6 +569,67 @@ main(void)
         PrintString(&errorMessage);
       }
     }
+  }
+
+  // struct string StringStripWhitespace(struct string *string)
+  // Dependencies: IsStringEqual()
+  if (IsStringEqualOK) {
+    struct test_case {
+      struct string string;
+      struct string expected;
+    } testCases[] = {
+        {
+            .string = STRING_FROM_ZERO_TERMINATED(" abc \n"),
+            .expected = STRING_FROM_ZERO_TERMINATED("abc"),
+        },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED("\t123"),
+            .expected = STRING_FROM_ZERO_TERMINATED("123"),
+        },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED("123\t\r\n"),
+            .expected = STRING_FROM_ZERO_TERMINATED("123"),
+        },
+        {
+            .string = {},
+            .expected = {},
+        },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED(""),
+            .expected = {},
+        },
+        {
+            .string = STRING_FROM_ZERO_TERMINATED("\n\t\v\f"),
+            .expected = {},
+        },
+    };
+
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
+
+      struct string *string = &testCase->string;
+      struct string *expected = &testCase->expected;
+      struct string got = StringStripWhitespace(string);
+      if (!IsStringEqual(&got, expected)) {
+        errorCode = expected->length > 0 ? TEXT_TEST_ERROR_STRIP_WHITESPACE_EXPECTED_STRING
+                                         : TEXT_TEST_ERROR_STRIP_WHITESPACE_EXPECTED_NULL;
+
+        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendString(sb, string);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendPrintableString(sb, expected);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendPrintableString(sb, &got);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+      }
+    }
+  } else {
+    struct string errorMessage =
+        STRING_FROM_ZERO_TERMINATED("Warning: StringStripWhitespace() test skipped because IsStringEqual() failed\n.");
+    PrintString(&errorMessage);
   }
 
   // ParseDuration(struct string *string, struct duration *duration)

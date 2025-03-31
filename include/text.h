@@ -177,6 +177,48 @@ IsStringEndsWith(struct string *string, struct string *search)
   return 1;
 }
 
+static struct string
+StringStripWhitespace(struct string *string)
+{
+  struct string result = {};
+  if (!string || string->length == 0)
+    return result;
+
+  b8 whitespace[U8_MAX] = {
+      ['\t'] = 1, // horizontal tab
+      ['\n'] = 1, // line feed
+      ['\v'] = 1, // vertical tab
+      ['\f'] = 1, // form feed
+      ['\r'] = 1, // carriage return
+      [' '] = 1,  // space
+  };
+
+  u64 position = 0;
+  while (position < string->length) {
+    u8 character = string->value[position];
+    if (!whitespace[character])
+      break;
+    position++;
+  }
+  u64 start = position;
+
+  position = string->length - 1;
+  while (position > start) {
+    u8 character = string->value[position];
+    if (!whitespace[character])
+      break;
+    position--;
+  }
+  u64 end = position + 1;
+
+  if (end == start)
+    return result;
+
+  result.value = string->value + start;
+  result.length = end - start;
+  return result;
+}
+
 struct duration {
   u64 ns;
 };
