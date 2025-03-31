@@ -4,9 +4,7 @@
 
 #define TEST_ERROR_LIST(XX)                                                                                            \
   XX(PARSE_EXPECTED_TRUE, "Json must be parsed successfully")                                                          \
-  XX(PARSE_EXPECTED_FALSE, "Json must NOT be able to parse anything")                                                  \
-  XX(PARSE_CHUNKED_JSON_EXPECTED_TRUE, "Chunked jsons must be parsed successfully")                                    \
-  XX(PARSE_CHUNKED_JSON_EXPECTED_FALSE, "Chunked jsons must NOT be parsed")
+  XX(PARSE_EXPECTED_FALSE, "Json must NOT be able to parse anything")
 
 enum json_parser_test_error {
   JSON_PARSER_TEST_ERROR_NONE = 0,
@@ -59,6 +57,7 @@ internalfn void
 StringBuilderAppendJsonTokenType(string_builder *sb, enum json_token_type type)
 {
   struct string table[] = {
+      [JSON_TOKEN_NONE] = STRING_FROM_ZERO_TERMINATED("NONE"),
       [JSON_TOKEN_NULL] = STRING_FROM_ZERO_TERMINATED("NULL"),
       [JSON_TOKEN_OBJECT] = STRING_FROM_ZERO_TERMINATED("OBJECT"),
       [JSON_TOKEN_ARRAY] = STRING_FROM_ZERO_TERMINATED("ARRAY"),
@@ -80,6 +79,7 @@ StringBuilderAppendJsonParserError(string_builder *sb, enum json_parser_error er
       [JSON_PARSER_ERROR_NO_OPENING_BRACKET] = STRING_FROM_ZERO_TERMINATED("no opening bracket found"),
       [JSON_PARSER_ERROR_PARTIAL] = STRING_FROM_ZERO_TERMINATED("partial json"),
       [JSON_PARSER_ERROR_INVALID_BOOLEAN] = STRING_FROM_ZERO_TERMINATED("invalid boolean"),
+      [JSON_PARSER_ERROR_INVALID_CHAR] = STRING_FROM_ZERO_TERMINATED("invalid character"),
   };
   struct string *string = table + (u32)error;
   StringBuilderAppendString(sb, string);
@@ -96,6 +96,78 @@ StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(SPACE)"));
   else
     StringBuilderAppendString(sb, string);
+}
+
+internalfn void
+StringBuilderAppendHexDump(string_builder *sb, struct string *string)
+{
+  if (string->value == 0) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    return;
+  } else if (string->value != 0 && string->length == 0) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    return;
+  }
+
+  struct string_cursor cursor = StringCursorFromString(string);
+  u8 offsetBuffer[8];
+  struct string offsetBufferString = StringFromBuffer(offsetBuffer, ARRAY_COUNT(offsetBuffer));
+  u8 hexBuffer[2];
+  struct string hexBufferString = StringFromBuffer(hexBuffer, ARRAY_COUNT(hexBuffer));
+
+  while (!IsStringCursorAtEnd(&cursor)) {
+    // offset
+    struct string offsetText = FormatHex(&offsetBufferString, cursor.position);
+    for (u32 offsetTextPrefixIndex = 0; offsetTextPrefixIndex < offsetBufferString.length - offsetText.length;
+         offsetTextPrefixIndex++) {
+      // offset length must be 8, so fill prefix with zeros
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("0"));
+    }
+    StringBuilderAppendString(sb, &offsetText);
+
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+
+    // hex
+    u64 width = 16;
+    struct string substring = StringCursorConsumeSubstring(&cursor, width);
+    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
+      u8 character = *(substring.value + substringIndex);
+      struct string hexText = FormatHex(&hexBufferString, (u64)character);
+      debug_assert(hexText.length == 2);
+      StringBuilderAppendString(sb, &hexText);
+
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+
+      if (substringIndex + 1 == 8)
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    }
+
+    for (u64 index = 0; index < width - substring.length; index++) {
+      // align ascii to right
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("   "));
+      if (index + substring.length + 1 == 8)
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    }
+
+    // ascii input
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
+      u8 character = *(substring.value + substringIndex);
+      b8 disallowed[255] = {
+          [0x00 ... 0x1a] = 1,
+      };
+      if (disallowed[character])
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("."));
+      else {
+        struct string characterString = StringFromBuffer(&character, 1);
+        StringBuilderAppendString(sb, &characterString);
+      }
+    }
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+
+    if (!IsStringCursorAtEnd(&cursor))
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+  }
 }
 
 internalfn string_builder *
@@ -140,8 +212,6 @@ main(void)
 
   // u32 JsonParse(struct json_parser *parser, struct string *json)
   {
-    u32 allocatedTokenCount = 128;
-
     struct test_case {
       struct string *json;
       struct {
@@ -270,6 +340,25 @@ main(void)
                 },
         },
         {
+            .json = &STRING_FROM_ZERO_TERMINATED("{ \"a\": null }"),
+            .expected =
+                {
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 13},
+                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 4},
+                            {.type = JSON_TOKEN_NULL, .start = 7, .end = 11},
+                        },
+                    .strings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("{ \"a\": null }"),
+                            STRING_FROM_ZERO_TERMINATED("a"),
+                            STRING_FROM_ZERO_TERMINATED("null"),
+                        },
+                },
+        },
+        {
             .json = &STRING_FROM_ZERO_TERMINATED("[ 1, 20, 300 ]"),
             .expected =
                 {
@@ -391,6 +480,7 @@ main(void)
         },
     };
 
+    u32 failedTestCount = 0;
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
       memory_temp tempMemory = MemoryTempBegin(&stackMemory); // for token allocations
       struct test_case *testCase = testCases + testCaseIndex;
@@ -399,413 +489,130 @@ main(void)
       struct json_token *expectedTokens = testCase->expected.tokens;
       struct string *json = testCase->json;
 
-      struct json_token *tokens = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*tokens) * allocatedTokenCount);
-      struct json_parser parser = JsonParser(tokens, allocatedTokenCount);
+      u32 allocatedTokenCount = 128;
+      struct json_parser *parser = MakeJsonParser(tempMemory.arena, allocatedTokenCount);
 
-      u32 tokenCount = JsonParse(&parser, json);
-      if (tokenCount != expectedTokenCount) {
-        errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                       : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+      b8 expectedValue = expectedTokenCount > 0;
+      b8 gotValue = JsonParse(parser, json);
+      if (gotValue != expectedValue) {
+        errorCode =
+            expectedValue ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
 
-        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json: "));
-        StringBuilderAppendString(sb, json);
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          StringBuilderAppendHexDump(sb, json);
+        }
+
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected to return: "));
+        StringBuilderAppendBool(sb, expectedValue);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n             but got: "));
+        StringBuilderAppendBool(sb, gotValue);
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
+        continue;
+      }
+
+      u32 gotTokenCount = parser->tokenCount;
+      if (gotTokenCount != expectedTokenCount) {
+        errorCode =
+            expectedValue ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
+
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          StringBuilderAppendHexDump(sb, json);
+        }
+
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected "));
         StringBuilderAppendU64(sb, expectedTokenCount);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" token(s) to be parsed but got "));
-        StringBuilderAppendU64(sb, tokenCount);
+        StringBuilderAppendU64(sb, gotTokenCount);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
-      } else {
-        // if tokenCount is correct
 
-        u32 wrongTokenCount = 0;
-        for (u32 tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
-          struct json_token *token = tokens + tokenIndex;
-          struct json_token *expectedToken = expectedTokens + tokenIndex;
+        failedTestCount++;
+        continue;
+      }
 
-          if (token->type == expectedToken->type && token->start == expectedToken->start &&
-              token->end == expectedToken->end) {
-            struct string *expectedString = testCase->expected.strings + tokenIndex;
-            struct string string = JsonTokenExtractString(token, json);
-            if (IsStringEqual(&string, expectedString))
-              continue;
-          }
+      // if tokenCount is correct
 
-          if (wrongTokenCount == 0) {
-            errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                           : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-            StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json: "));
-            StringBuilderAppendString(sb, json);
-          }
+      for (u32 tokenIndex = 0; tokenIndex < parser->tokenCount; tokenIndex++) {
+        struct json_token *token = parser->tokens + tokenIndex;
+        struct json_token *expectedToken = expectedTokens + tokenIndex;
 
-          if (token->type != expectedToken->type) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token type to be "));
-            StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendJsonTokenType(sb, token->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else if (token->start != expectedToken->start) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
-            StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" start to be "));
-            StringBuilderAppendU64(sb, expectedToken->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendU64(sb, token->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else if (token->end != expectedToken->end) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
-            StringBuilderAppendJsonTokenType(sb, token->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end to be "));
-            StringBuilderAppendU64(sb, expectedToken->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendU64(sb, token->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else {
-            struct string *expectedString = testCase->expected.strings + tokenIndex;
-            struct string string = JsonTokenExtractString(token, json);
-            StringBuilderAppendString(sb,
-                                      &STRING_FROM_ZERO_TERMINATED("\n  expected string extracted from token to be:"));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
-            StringBuilderAppendString(sb, expectedString);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  but got:"));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
-            StringBuilderAppendString(sb, &string);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  at index: "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-          struct string errorMessage = StringBuilderFlush(sb);
-          PrintString(&errorMessage);
-
-          wrongTokenCount++;
+        if (token->type == expectedToken->type && token->start == expectedToken->start &&
+            token->end == expectedToken->end) {
+          struct string *expectedString = testCase->expected.strings + tokenIndex;
+          struct string string = JsonTokenExtractString(token, json);
+          if (IsStringEqual(&string, expectedString))
+            continue;
         }
-      }
 
-      MemoryTempEnd(&tempMemory);
-    }
-  }
-
-  {
-    u32 allocatedTokenCount = 128;
-
-    struct test_case {
-      u32 chunkedJsonCount;
-      struct string *chunkedJsons;
-      struct {
-        u32 tokenCount;
-        struct json_token *tokens;
-        struct string *strings;
-      } expected;
-    } testCases[] = {
-        {
-            .chunkedJsonCount = 2,
-            .chunkedJsons =
-                (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": "),
-                    STRING_FROM_ZERO_TERMINATED("\"ipsum\" }"),
-                },
-            .expected =
-                {
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 20},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 8},
-                            {.type = JSON_TOKEN_STRING, .start = 12, .end = 17},
-                        },
-                    .strings =
-                        (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\" }"),
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum"),
-                        },
-                },
-        },
-        // partial string
-        {
-            .chunkedJsonCount = 2,
-            .chunkedJsons =
-                (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ip"),
-                    STRING_FROM_ZERO_TERMINATED("sum\" }"),
-                },
-            .expected =
-                {
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 20},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 8},
-                            {.type = JSON_TOKEN_STRING, .start = 12, .end = 17},
-                        },
-                    .strings =
-                        (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\" }"),
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum"),
-                        },
-                },
-        },
-        // partial boolean
-        {
-            .chunkedJsonCount = 2,
-            .chunkedJsons =
-                (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED("{ \"a\": tr"),
-                    STRING_FROM_ZERO_TERMINATED("ue }"),
-                },
-            .expected =
-                {
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 13},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 4},
-                            {.type = JSON_TOKEN_BOOLEAN_TRUE, .start = 7, .end = 11},
-                        },
-                    .strings =
-                        (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": true }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("true"),
-                        },
-                },
-        },
-        {
-            .chunkedJsonCount = 2,
-            .chunkedJsons =
-                (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED("{ \"a\": fa"),
-                    STRING_FROM_ZERO_TERMINATED("lse }"),
-                },
-            .expected =
-                {
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 14},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 4},
-                            {.type = JSON_TOKEN_BOOLEAN_FALSE, .start = 7, .end = 12},
-                        },
-                    .strings =
-                        (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": false }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("false"),
-                        },
-                },
-        },
-        // partial number
-        {
-            .chunkedJsonCount = 2,
-            .chunkedJsons =
-                (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED("{ \"a\": 234"),
-                    STRING_FROM_ZERO_TERMINATED("093 }"),
-                },
-            .expected =
-                {
-                    .tokenCount = 3,
-                    .tokens =
-                        (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 15},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 4},
-                            {.type = JSON_TOKEN_NUMBER, .start = 7, .end = 13},
-                        },
-                    .strings =
-                        (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": 234093 }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("234093"),
-                        },
-                },
-        },
-    };
-
-    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
-      memory_temp tempMemory = MemoryTempBegin(&stackMemory); // for token allocations
-      struct test_case *testCase = testCases + testCaseIndex;
-
-      u32 expectedTokenCount = testCase->expected.tokenCount;
-      struct json_token *expectedTokens = testCase->expected.tokens;
-
-      // combine chunked json strings for printing
-      struct string *chunkedJsons = testCase->chunkedJsons;
-      u32 chunkedJsonCount = testCase->chunkedJsonCount;
-      u64 jsonLength = 0;
-      for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-        struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-        jsonLength += chunkedJson->length;
-      }
-      string_builder *jsonBuilder = MakeStringBuilder(tempMemory.arena, jsonLength, 0);
-      for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-        struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-        StringBuilderAppendString(jsonBuilder, chunkedJson);
-      }
-      struct string json = StringBuilderFlush(jsonBuilder);
-
-      // parse chunked json
-      struct json_token *tokens = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*tokens) * allocatedTokenCount);
-      struct json_parser parser = JsonParser(tokens, allocatedTokenCount);
-
-      u32 totalTokenCount = 0;
-      for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-        struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-        u32 tokenCount = JsonParse(&parser, chunkedJson);
-        if (!(parser.error == JSON_PARSER_ERROR_NONE || parser.error == JSON_PARSER_ERROR_PARTIAL)) {
-          break;
-        }
-        totalTokenCount += tokenCount;
-      }
-
-      if (parser.error) {
         errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
                                        : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
 
-        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-          struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json "));
-          StringBuilderAppendU64(sb, chunkedJsonIndex);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(": "));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(length: "));
-          StringBuilderAppendU64(sb, chunkedJson->length);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(") '"));
-          StringBuilderAppendString(sb, chunkedJson);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected to be parsed without any errors"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  but got "));
-        StringBuilderAppendJsonParserError(sb, parser.error);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-        struct string errorMessage = StringBuilderFlush(sb);
-        PrintString(&errorMessage);
-      } else if (totalTokenCount != expectedTokenCount) {
-        errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                       : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
-        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-          struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json "));
-          StringBuilderAppendU64(sb, chunkedJsonIndex);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(": "));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(length: "));
-          StringBuilderAppendU64(sb, chunkedJson->length);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(") '"));
-          StringBuilderAppendString(sb, chunkedJson);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected "));
-        StringBuilderAppendU64(sb, expectedTokenCount);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" token(s) to be parsed but got "));
-        StringBuilderAppendU64(sb, totalTokenCount);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-        struct string errorMessage = StringBuilderFlush(sb);
-        PrintString(&errorMessage);
-      } else {
-        // if tokenCount is correct
-
-        u32 wrongTokenCount = 0;
-        for (u32 tokenIndex = 0; tokenIndex < totalTokenCount; tokenIndex++) {
-          struct json_token *token = tokens + tokenIndex;
-          struct json_token *expectedToken = expectedTokens + tokenIndex;
-
-          if (token->type == expectedToken->type && token->start == expectedToken->start &&
-              token->end == expectedToken->end) {
-            struct string *expectedString = testCase->expected.strings + tokenIndex;
-            struct string string = JsonTokenExtractString(token, &json);
-            if (IsStringEqual(&string, expectedString))
-              continue;
-          }
-
-          errorCode = expectedTokenCount ? JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
-                                         : JSON_PARSER_TEST_ERROR_PARSE_EXPECTED_FALSE;
-
-          if (wrongTokenCount == 0) {
-            StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-
-            for (u32 chunkedJsonIndex = 0; chunkedJsonIndex < chunkedJsonCount; chunkedJsonIndex++) {
-              struct string *chunkedJson = chunkedJsons + chunkedJsonIndex;
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  json "));
-              StringBuilderAppendU64(sb, chunkedJsonIndex);
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(": "));
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(length: "));
-              StringBuilderAppendU64(sb, chunkedJson->length);
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(") '"));
-              StringBuilderAppendString(sb, chunkedJson);
-              StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-            }
-          }
-
-          if (token->type != expectedToken->type) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token type to be "));
-            StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendJsonTokenType(sb, token->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else if (token->start != expectedToken->start) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
-            StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" start to be "));
-            StringBuilderAppendU64(sb, expectedToken->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendU64(sb, token->start);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else if (token->end != expectedToken->end) {
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
-            StringBuilderAppendJsonTokenType(sb, token->type);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end to be "));
-            StringBuilderAppendU64(sb, expectedToken->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
-            StringBuilderAppendU64(sb, token->end);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
-          else {
-            struct string *expectedString = testCase->expected.strings + tokenIndex;
-            struct string string = JsonTokenExtractString(token, &json);
-            StringBuilderAppendString(sb,
-                                      &STRING_FROM_ZERO_TERMINATED("\n  expected string extracted from token to be:"));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
-            StringBuilderAppendString(sb, expectedString);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  but got:"));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
-            StringBuilderAppendString(sb, &string);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  at index: "));
-            StringBuilderAppendU64(sb, tokenIndex);
-          }
-
+        if (failedTestCount == 0) {
+          StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-          struct string errorMessage = StringBuilderFlush(sb);
-          PrintString(&errorMessage);
-
-          wrongTokenCount++;
+          StringBuilderAppendHexDump(sb, json);
         }
+
+        if (token->type != expectedToken->type) {
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token type to be "));
+          StringBuilderAppendJsonTokenType(sb, expectedToken->type);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendJsonTokenType(sb, token->type);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendU64(sb, tokenIndex);
+        }
+
+        else if (token->start != expectedToken->start) {
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
+          StringBuilderAppendJsonTokenType(sb, expectedToken->type);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" start to be "));
+          StringBuilderAppendU64(sb, expectedToken->start);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendU64(sb, token->start);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendU64(sb, tokenIndex);
+        }
+
+        else if (token->end != expectedToken->end) {
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
+          StringBuilderAppendJsonTokenType(sb, token->type);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end to be "));
+          StringBuilderAppendU64(sb, expectedToken->end);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendU64(sb, token->end);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendU64(sb, tokenIndex);
+        }
+
+        else {
+          struct string *expectedString = testCase->expected.strings + tokenIndex;
+          struct string string = JsonTokenExtractString(token, json);
+          StringBuilderAppendString(sb,
+                                    &STRING_FROM_ZERO_TERMINATED("\n  expected string extracted from token to be:"));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
+          StringBuilderAppendString(sb, expectedString);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  but got:"));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
+          StringBuilderAppendString(sb, &string);
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
+          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  at index: "));
+          StringBuilderAppendU64(sb, tokenIndex);
+        }
+
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+
+        failedTestCount++;
       }
 
       MemoryTempEnd(&tempMemory);
