@@ -177,10 +177,11 @@ main(void)
     }
   }
 
-  // Recieve a HTTP Response
+  // Recieve a HTTP Response and parse it
   u64 responseBufferMax = 256 * KILOBYTES;
   u8 *responseBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
   struct string response;
+  struct http_parser *httpParser = MakeHttpParser(&stackMemory, 32);
   {
     u64 totalBytesRead = 0;
     while (1) {
@@ -208,10 +209,26 @@ main(void)
         break; // EOF
 
       struct string packet = StringFromBuffer(responseBuffer + totalBytesRead, bytesRead);
+      u32 breakHere = 1;
+      b8 ok = HttpParse(httpParser, &packet);
+      if (!ok && httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Http parser failed."));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n     error: "));
+        StringBuilderAppendU64(sb, (u64)httpParser->error);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  position: "));
+        StringBuilderAppendU64(sb, httpParser->position);
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        struct string message = StringBuilderFlush(sb);
+        PrintString(&message);
+        return 1;
+      }
+
       totalBytesRead += bytesRead;
 
-      struct string finalChunkedPacket = STRING_FROM_ZERO_TERMINATED("0\r\n\r\n");
-      if (IsStringEqual(&packet, &finalChunkedPacket))
+      // TODO: Other ways to detect if http response finished
+
+      struct http_token *lastHttpToken = httpParser->tokens + (httpParser->tokenCount - 1);
+      if (lastHttpToken->type == HTTP_TOKEN_LAST_CHUNK)
         break;
     }
 
@@ -224,48 +241,50 @@ main(void)
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
-  }
-
-  // Parse HTTP Response
-#if 0
-  struct string *httpSeperator = &STRING_FROM_ZERO_TERMINATED("\r\n");
-
-  u64 httpFieldCount;
-  StringSplit(&response, httpSeperator, &httpFieldCount, 0);
-
-  struct string *httpFields = MemoryArenaPushUnaligned(&stackMemory, sizeof(*httpFields) * httpFieldCount);
-  StringSplit(&response, httpSeperator, &httpFieldCount, httpFields);
-
-  for (u32 httpFieldIndex = 1; httpFieldIndex < httpFieldCount; httpFieldIndex++) {
-    struct string *httpField = httpFields + httpFieldIndex;
-    if (IsStringEqualIgnoreCase(httpField, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 200 OK"))) {
-      struct string message = STRING_FROM_ZERO_TERMINATED("OK\n");
-      PrintString(&message);
-    } else if (IsStringEqualIgnoreCase(httpField, &STRING_FROM_ZERO_TERMINATED("content-type: application/json"))) {
-      struct string message = STRING_FROM_ZERO_TERMINATED("json\n");
-      PrintString(&message);
-    }
-  }
-#endif
-
-#if 0
-  struct http_parser parser;
-  HttpParserInit(&parser);
-  HttpParserMustHaveStatusCode(&parser, 200);
-
-  struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 1024);
-  HttpParserMustBeJson(&parser, jsonParser);
-
-  u32 breakHere = 1;
-  if (!HttpParserParse(&parser, &response)) {
     return 1;
   }
 
-  if (jsonParser->tokenCount == 0)
-    return 1;
+  // extract data from http response
+  u64 jsonBufferLength = 0;
+  for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount - 1; httpTokenIndex++) {
+    struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+    if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+      continue;
 
-  if (jsonParser->tokens[0].type != JSON_TOKEN_OBJECT)
+    struct string data = HttpTokenExtractString(httpToken, &response);
+    jsonBufferLength += data.length;
+  }
+
+  string_builder *jsonBuilder = MakeStringBuilder(&stackMemory, jsonBufferLength, 0);
+  for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount - 1; httpTokenIndex++) {
+    struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+    if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+      continue;
+    struct string data = HttpTokenExtractString(httpToken, &response);
+    StringBuilderAppendString(jsonBuilder, &data);
+  }
+  struct string json = StringBuilderFlush(jsonBuilder);
+
+  // parse data as json
+  struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 256);
+  if (!JsonParse(jsonParser, &json)) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Json parser failed."));
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  error: "));
+    StringBuilderAppendU64(sb, (u64)jsonParser->error);
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
     return 1;
+  }
+
+  struct json_token *firstJsonToken = jsonParser->tokens + 0;
+  if (firstJsonToken->type != JSON_TOKEN_OBJECT) {
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Got unexpected json from server"));
+    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
+    return 1;
+  }
 
   for (u32 jsonTokenIndex = 1; jsonTokenIndex < jsonParser->tokenCount; jsonTokenIndex++) {
     struct json_token *jsonToken = jsonParser->tokens + jsonTokenIndex;
@@ -273,22 +292,24 @@ main(void)
       continue;
 
     struct json_token *keyToken = jsonToken;
-    struct string key = JsonTokenExtractString(keyToken, &response);
-
+    struct string key = JsonTokenExtractString(keyToken, &json);
     if (IsStringEqual(&key, &STRING_FROM_ZERO_TERMINATED("title"))) {
-      struct json_token *valueToken = jsonParser->tokens + jsonTokenIndex;
       jsonTokenIndex++;
-      struct string value = JsonTokenExtractString(valueToken, &response);
+      struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
+      if (titleToken->type != JSON_TOKEN_STRING) {
+        // expected title to be string
+        return 1;
+      }
+      struct string title = JsonTokenExtractString(titleToken, &json);
 
-      StringBuilderAppendString(sb, &key);
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" is "));
-      StringBuilderAppendString(sb, &value);
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Title: "));
+      StringBuilderAppendString(sb, &title);
       StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
       struct string message = StringBuilderFlush(sb);
       PrintString(&message);
+      continue;
     }
   }
-#endif
 
   return 0;
 }

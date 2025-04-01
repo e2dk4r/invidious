@@ -1,17 +1,24 @@
 /*
  * HTTP 1.1 Parser
- * USAGE:
- * <code>
- *   http_parser parser;
- *   HttpParserInit(&parser);
- *   HttpParserMustHaveStatusCode(&parser, 200);
- *   jsmntok_t jsonTokens[128];
- *   u16 jsonTokenCount = 0;
- *   HttpParserMustBeJson(&parser, jsonTokens, ARRAY_COUNT(jsonTokens), &jsonTokenCount)
- *   if HttpParserParse(&parser, response)
- *     print(HttpParserGetError())
- *     exit
- * </code>
+ *
+ * This was implemented in assumption that you use continuous buffer that has
+ * HTTP response. As you fill the buffer you continuously call HttpParse() and
+ * see the HTTP tokens. If any error happened you can early out.
+ *
+ * @code
+ *   buf = allocate(length)
+ *   position = 0;
+ *   while (1) {
+ *     readBytes = ssl_read(buf, length - position);
+ *     packet = StringFromBuffer(buf + position, readBytes);
+ *     position += readBytes;
+ *     ok = HttpParse(parser, packet);
+ *     if (!ok && parser->error != PARTIAL)
+ *       break
+ *     if (parser->latestToken == END)
+ *       break;
+ *   }
+ * @endcode
  */
 
 #include "assert.h"
@@ -71,6 +78,7 @@ enum http_token_type {
   /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding" */
   HTTP_TOKEN_CHUNK_SIZE,
   HTTP_TOKEN_CHUNK_DATA,
+  HTTP_TOKEN_LAST_CHUNK,
 };
 
 struct http_token {
@@ -102,11 +110,16 @@ enum http_parser_state {
 struct http_parser {
   u16 statusCode;
 
+  // TODO: Can be replaced by looping tokens.
   enum http_parser_state state;
   enum http_parser_error error;
+
   u32 tokenCount;
   u32 tokenMax;
   struct http_token *tokens;
+
+  // last read position from buffer
+  u64 position;
 };
 
 internalfn void
@@ -116,6 +129,7 @@ HttpParserInit(struct http_parser *parser, struct http_token *tokens, u32 tokenC
   parser->tokenCount = 0;
   parser->tokenMax = tokenCount;
   parser->tokens = tokens;
+  parser->position = 0;
 }
 
 internalfn struct http_parser
@@ -148,9 +162,10 @@ HttpTokenExtractString(struct http_token *token, struct string *httpResponse)
   return StringFromBuffer(httpResponse->value + token->start, token->end - token->start);
 }
 
-internalfn u32
+internalfn b8
 HttpParse(struct http_parser *parser, struct string *httpResponse)
 {
+  enum http_parser_error lastError = parser->error;
   parser->error = HTTP_PARSER_ERROR_NONE;
 
   struct string *SP = &STRING_FROM_ZERO_TERMINATED(" ");
@@ -162,8 +177,8 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
   /*****************************************************************
    * Parsing Status-Line
    *****************************************************************/
-  b8 isStatusLineParsed = (parser->state & HTTP_PARSER_STATE_STATUS_LINE_PARSED) != 0;
-  if (!isStatusLineParsed) {
+  b8 isStatusLineNotParsed = (parser->state & HTTP_PARSER_STATE_STATUS_LINE_PARSED) == 0;
+  if (isStatusLineNotParsed) {
     /* https://www.rfc-editor.org/rfc/rfc2616#section-6.1 "Status-Line"
      *   The first line of a Response message is the Status-Line, consisting
      *   of the protocol version followed by a numeric status code and its
@@ -183,15 +198,17 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     struct string httpVersion = StringCursorExtractUntil(&cursor, SP);
     if (httpVersion.length != 8) {
       parser->error = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID;
-      return 0;
+      goto end;
     } else if (!IsStringEqual(&httpVersion, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1"))) {
       parser->error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1;
-      return 0;
+      goto end;
     } else {
       struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
       token->type = HTTP_TOKEN_HTTP_VERSION;
       token->start = cursor.position;
       token->end = token->start + httpVersion.length;
+      token->start += parser->position;
+      token->end += parser->position;
       writtenTokenCount++;
 
       // Advance after SP
@@ -201,21 +218,23 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     struct string statusCodeText = StringCursorExtractUntil(&cursor, SP);
     if (statusCodeText.length != 3) {
       parser->error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID;
-      return 0;
+      goto end;
     }
 
     u64 statusCode;
     if (!ParseU64(&statusCodeText, &statusCode)) {
       parser->error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER;
-      return 0;
+      goto end;
     } else if (statusCode < 100) {
       parser->error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999;
-      return 0;
+      goto end;
     } else {
       struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
       token->type = HTTP_TOKEN_STATUS_CODE;
       token->start = cursor.position;
       token->end = token->start + statusCodeText.length;
+      token->start += parser->position;
+      token->end += parser->position;
       writtenTokenCount++;
 
       // Advance after SP
@@ -228,7 +247,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     struct string reasonPhrase = StringCursorExtractUntil(&cursor, CRLF);
     if (reasonPhrase.length == 0) {
       parser->error = HTTP_PARSER_ERROR_REASON_PHRASE_INVALID;
-      return 0;
+      goto end;
     }
 
     // Advance after CRLF
@@ -239,14 +258,14 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
 
   if (IsStringCursorAtEnd(&cursor)) {
     parser->error = HTTP_PARSER_ERROR_PARTIAL;
-    return writtenTokenCount;
+    goto end;
   }
 
   /*****************************************************************
    * Parsing Headers
    *****************************************************************/
-  b8 isHeadersParsed = (parser->state & HTTP_PARSER_STATE_HEADERS_PARSED) != 0;
-  if (!isHeadersParsed) {
+  b8 isHeadersNotParsed = (parser->state & HTTP_PARSER_STATE_HEADERS_PARSED) == 0;
+  if (isHeadersNotParsed) {
     while (!IsStringCursorAtEnd(&cursor)) {
       if (StringCursorPeekStartsWith(&cursor, CRLF)) {
         parser->state |= HTTP_PARSER_STATE_HEADERS_PARSED;
@@ -266,7 +285,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       struct string fieldName = StringCursorExtractUntil(&cursor, colon);
       if (fieldName.length == 0) {
         parser->error = HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED;
-        return 0;
+        goto end;
       }
 
       enum http_token_type tokenType = HTTP_TOKEN_NONE;
@@ -332,18 +351,25 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       struct string trimmedFieldValue = StringStripWhitespace(&fieldValue);
       if (trimmedFieldValue.length == 0) {
         parser->error = HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED;
-        return 0;
+        goto end;
       }
 
       struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
       token->type = tokenType;
       token->start = cursor.position + ((u64)trimmedFieldValue.value - (u64)fieldValue.value);
       token->end = token->start + trimmedFieldValue.length;
+      token->start += parser->position;
+      token->end += parser->position;
       writtenTokenCount++;
 
       // Advance after CRLF
       cursor.position += fieldValue.length + CRLF->length;
     }
+  }
+
+  if (IsStringCursorAtEnd(&cursor)) {
+    parser->error = HTTP_PARSER_ERROR_PARTIAL;
+    goto end;
   }
 
   /*****************************************************************
@@ -368,20 +394,31 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
      *   trailer        = *(entity-header CRLF)
      */
 
+    // Extract chunk size
     struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
     struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
-    if (IsStringEqual(&chunkSizeText, lastChunkSizeText))
-      break;
+    if (IsStringEqual(&chunkSizeText, lastChunkSizeText)) {
+      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
+      token->type = HTTP_TOKEN_LAST_CHUNK;
+      token->start = cursor.position;
+      token->end = token->start + lastChunkSizeText->length;
+      token->start += parser->position;
+      token->end += parser->position;
+      writtenTokenCount++;
+      goto end;
+    }
 
     u64 chunkSize;
     if (!ParseHex(&chunkSizeText, &chunkSize)) {
       parser->error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID;
-      return 0;
+      goto end;
     } else {
       struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
       token->type = HTTP_TOKEN_CHUNK_SIZE;
       token->start = cursor.position;
       token->end = token->start + chunkSizeText.length;
+      token->start += parser->position;
+      token->end += parser->position;
       writtenTokenCount++;
     }
 
@@ -391,12 +428,14 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     struct string chunkData = StringCursorExtractUntil(&cursor, CRLF);
     if (chunkSize != chunkData.length) {
       parser->error = HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED;
-      return 0;
+      goto end;
     } else {
-      struct http_token *token = parser->tokens + writtenTokenCount;
+      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
       token->type = HTTP_TOKEN_CHUNK_DATA;
       token->start = cursor.position;
       token->end = token->start + chunkData.length;
+      token->start += parser->position;
+      token->end += parser->position;
       writtenTokenCount++;
     }
 
@@ -404,306 +443,13 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     cursor.position += chunkData.length + CRLF->length;
   }
 
-  parser->tokenCount += writtenTokenCount;
-  return writtenTokenCount;
-}
-
-#if 0
-enum http_parser_flag {
-  HTTP_PARSER_CHECK_STATUS_CODE_FLAG = (1 << 0),
-  HTTP_PARSER_CHECK_CONTENT_TYPE_FLAG = (1 << 1),
-};
-
-enum http_parser_error {
-  HTTP_RESPONSE_SUCCESS,
-  HTTP_RESPONSE_IS_NOT_HTTP_1_1,
-  HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER,
-  HTTP_RESPONSE_STATUS_CODE_NOT_EXPECTED,
-  HTTP_RESPONSE_PARTIAL,
-  HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED,
-  HTTP_RESPONSE_CONTENT_TYPE_NOT_EXPECTED,
-  HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_SIZE_IS_NOT_HEX,
-  HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_DATA_MALFORMED,
-};
-
-struct http_parser {
-  enum http_parser_flag flags;
-  enum http_parser_error error;
-  u16 statusCode;
-  struct string contentType;
-  void *contentParser;
-};
-
-internalfn void
-HttpParserInit(struct http_parser *parser)
-{
-  parser->flags = 0;
-  parser->error = HTTP_RESPONSE_SUCCESS;
-}
-
-internalfn b8
-IsHttpParserFlagSet(struct http_parser *parser, enum http_parser_flag flag)
-{
-  return (parser->flags & flag) != 0;
-}
-
-internalfn void
-HttpParserFlagSet(struct http_parser *parser, enum http_parser_flag flag)
-{
-  parser->flags |= flag;
-}
-
-internalfn void
-HttpParserMustHaveStatusCode(struct http_parser *parser, u16 statusCode)
-{
-  HttpParserFlagSet(parser, HTTP_PARSER_CHECK_STATUS_CODE_FLAG);
-  parser->statusCode = statusCode;
-}
-
-internalfn void
-HttpParserMustBeJson(struct http_parser *parser, struct json_parser *jsonParser)
-{
-  HttpParserFlagSet(parser, HTTP_PARSER_CHECK_CONTENT_TYPE_FLAG);
-  parser->contentType = STRING_FROM_ZERO_TERMINATED("application/json");
-  parser->contentParser = jsonParser;
-}
-
-internalfn b8
-StringCursorAdvanceAfterCRLF(struct string_cursor *cursor)
-{
-  return StringCursorAdvanceAfter(cursor, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-}
-
-internalfn b8
-IsStringCursorRemainingEqualToCRLF(struct string_cursor *cursor)
-{
-  return IsStringCursorRemainingEqual(cursor, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-}
-
-internalfn struct string
-StringCursorConsumeUntilCRLF(struct string_cursor *cursor)
-{
-  return StringCursorConsumeUntil(cursor, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-}
-
-internalfn struct string
-StringCursorExtractUntilCRLF(struct string_cursor *cursor)
-{
-  return StringCursorExtractUntil(cursor, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-}
-
-internalfn struct string
-StringCursorConsumeAfterSpace(struct string_cursor *cursor)
-{
-  return StringCursorConsumeUntil(cursor, &STRING_FROM_ZERO_TERMINATED(" "));
-}
-
-internalfn b8
-HttpParserParse(struct http_parser *parser, struct string *httpResponse)
-{
-  struct string_cursor cursor = StringCursorFromString(httpResponse);
-
-  parser->error = HTTP_RESPONSE_SUCCESS;
-
   if (IsStringCursorAtEnd(&cursor)) {
-    parser->error = HTTP_RESPONSE_PARTIAL;
-    return 0;
+    parser->error = HTTP_PARSER_ERROR_PARTIAL;
+    goto end;
   }
 
-  /* https://www.rfc-editor.org/rfc/rfc2616#section-6
-   * 6 Response
-   *
-   *    After receiving and interpreting a request message, a server responds
-   *    with an HTTP response message.
-   *
-   *        Response      = Status-Line               ; Section 6.1
-   *                        *(( general-header        ; Section 4.5
-   *                         | response-header        ; Section 6.2
-   *                         | entity-header ) CRLF)  ; Section 7.1
-   *                        CRLF
-   *                        [ message-body ]          ; Section 7.2
-   *
-   * https://www.rfc-editor.org/rfc/rfc2616#section-6.1
-   * 6.1 Status-Line
-   *
-   *    The first line of a Response message is the Status-Line, consisting
-   *    of the protocol version followed by a numeric status code and its
-   *    associated textual phrase, with each element separated by SP
-   *    characters. No CR or LF is allowed except in the final CRLF sequence.
-   *
-   *        Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
-   *
-   * https://www.rfc-editor.org/rfc/rfc2616#section-3.1
-   * 3.1 HTTP Version
-   *
-   *    The version of an HTTP message is indicated by an HTTP-Version field
-   *    in the first line of the message.
-   *
-   *        HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
-   */
-
-  if (!IsStringCursorStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 "))) {
-    parser->error = HTTP_RESPONSE_IS_NOT_HTTP_1_1;
-    return 0;
-  }
-
-  struct string statusCodeText = StringCursorConsumeUntil(&cursor, &STRING_FROM_ZERO_TERMINATED(" "));
-  if (statusCodeText.length != 3) {
-    parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
-    return 0;
-  }
-  u64 statusCode;
-  if (!ParseU64(&statusCodeText, &statusCode)) {
-    parser->error = HTTP_RESPONSE_STATUS_CODE_IS_NOT_3_DIGIT_INTEGER;
-    return 0;
-  }
-  if (IsHttpParserFlagSet(parser, HTTP_PARSER_CHECK_STATUS_CODE_FLAG) && statusCode != parser->statusCode) {
-    parser->error = HTTP_RESPONSE_STATUS_CODE_NOT_EXPECTED;
-    return 0;
-  }
-
-  if (!StringCursorAdvanceAfter(&cursor, &CRLF)) {
-    parser->error = HTTP_RESPONSE_PARTIAL;
-    return 0;
-  }
-
-  /*
-   * https://www.rfc-editor.org/rfc/rfc2616#section-4.5
-   * 4.5 General Header Fields
-   *        general-header = Cache-Control            ; Section 14.9
-   *                       | Connection               ; Section 14.10
-   *                       | Date                     ; Section 14.18
-   *                       | Pragma                   ; Section 14.32
-   *                       | Trailer                  ; Section 14.40
-   *                       | Transfer-Encoding        ; Section 14.41
-   *                       | Upgrade                  ; Section 14.42
-   *                       | Via                      ; Section 14.45
-   *                       | Warning                  ; Section 14.46
-   *
-   * https://www.rfc-editor.org/rfc/rfc2616#section-6.2
-   * 6.2 Response Header Fields
-   *        response-header = Accept-Ranges           ; Section 14.5
-   *                        | Age                     ; Section 14.6
-   *                        | ETag                    ; Section 14.19
-   *                        | Location                ; Section 14.30
-   *                        | Proxy-Authenticate      ; Section 14.33
-   *
-   * https://www.rfc-editor.org/rfc/rfc2616#section-7.1
-   * 7.1 Entity Header Fields
-   *        entity-header  = Allow                    ; Section 14.7
-   *                       | Content-Encoding         ; Section 14.11
-   *                       | Content-Language         ; Section 14.12
-   *                       | Content-Length           ; Section 14.13
-   *                       | Content-Location         ; Section 14.14
-   *                       | Content-MD5              ; Section 14.15
-   *                       | Content-Range            ; Section 14.16
-   *                       | Content-Type             ; Section 14.17
-   *                       | Expires                  ; Section 14.21
-   *                       | Last-Modified            ; Section 14.29
-   */
-
-  while (1) {
-    if (IsStringCursorAtEnd(&cursor)) {
-      parser->error = HTTP_RESPONSE_PARTIAL;
-      return 0;
-    }
-
-    struct string headerField = StringCursorConsumeUntil(&cursor, &STRING_FROM_ZERO_TERMINATED(": "));
-    if (headerField.length == 0) {
-      parser->error = HTTP_RESPONSE_PARTIAL;
-      return 0;
-    }
-
-    // StringCursorAdvanceAfter(&cursor, &STRING_FROM_ZERO_TERMINATED(": "));
-    struct string headerValue = StringCursorExtractUntil(&cursor, &CRLF);
-    StringCursorAdvanceAfterCRLF(&cursor);
-
-    // https://www.rfc-editor.org/rfc/rfc2616#section-14.17
-    if (IsStringEqualIgnoreCase(&headerField, &STRING_FROM_ZERO_TERMINATED("Content-Type"))) {
-      struct string contentType = headerValue;
-      if (IsHttpParserFlagSet(parser, HTTP_PARSER_CHECK_CONTENT_TYPE_FLAG) &&
-          !IsStringEqualIgnoreCase(&contentType, &parser->contentType)) {
-        parser->error = HTTP_RESPONSE_CONTENT_TYPE_NOT_EXPECTED;
-        return 0;
-      }
-    }
-
-    // https://www.rfc-editor.org/rfc/rfc2616#section-14.41
-    if (IsStringEqualIgnoreCase(&headerField, &STRING_FROM_ZERO_TERMINATED("Transfer-Encoding"))) {
-      struct string transferEncoding = headerValue;
-      if (!IsStringEqualIgnoreCase(&transferEncoding, &STRING_FROM_ZERO_TERMINATED("chunked"))) {
-        parser->error = HTTP_RESPONSE_NOT_CHUNKED_TRANSFER_ENCODED;
-        return 0;
-      }
-      break;
-    }
-  }
-
-  // TODO: check next 2 bytes if it is CRLF.
-  // see: https://www.rfc-editor.org/rfc/rfc2616#section-6 "6. Response"
-
-  if (IsStringCursorAtEnd(&cursor) || !StringCursorAdvanceAfterCRLF(&cursor)) {
-    parser->error = HTTP_RESPONSE_PARTIAL;
-    return 0;
-  }
-
-  // message-body
-  /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1
-   *   Chunked-Body   = *chunk
-   *                    last-chunk
-   *                    trailer
-   *                    CRLF
-   *
-   *   chunk          = chunk-size [ chunk-extension ] CRLF
-   *                    chunk-data CRLF
-   *   chunk-size     = 1*HEX
-   *   last-chunk     = 1*("0") [ chunk-extension ] CRLF
-   *
-   *   chunk-extension= *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
-   *   chunk-ext-name = token
-   *   chunk-ext-val  = token | quoted-string
-   *   chunk-data     = chunk-size(OCTET)
-   *   trailer        = *(entity-header CRLF)
-   */
-  while (!IsStringCursorAtEnd(&cursor)) {
-    struct string chunkSizeText = StringCursorConsumeUntilCRLF(&cursor);
-    u64 chunkSize;
-    if (!ParseHex(&chunkSizeText, &chunkSize)) {
-      parser->error = HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_SIZE_IS_NOT_HEX;
-      return 0;
-    }
-
-    if (chunkSize == 0)
-      break;
-
-    StringCursorAdvanceAfterCRLF(&cursor);
-    struct string chunkData = StringCursorExtractUntilCRLF(&cursor);
-    if (chunkData.length != chunkSize) {
-      parser->error = HTTP_RESPONSE_CHUNK_TRANSFER_ENCODING_CHUNK_DATA_MALFORMED;
-      return 0;
-    }
-
-    // chunkData
-    debug_assert(IsStringEqual(&parser->contentType, &STRING_FROM_ZERO_TERMINATED("application/json")));
-    struct json_parser *jsonParser = parser->contentParser;
-    u32 beforeTokenCount = jsonParser->tokenCount;
-    u32 parsedTokenCount = JsonParse(jsonParser, &chunkData);
-
-    // TODO: Handle json parse errors
-    debug_assert(jsonParser->error == JSON_PARSER_ERROR_NONE || jsonParser->error == JSON_PARSER_ERROR_PARTIAL);
-
-    // Adjust json token positions to where in http response
-    // This is because json parser thinks we store json as sequential in memory.
-    for (u32 parsedTokenIndex = 0; parsedTokenIndex < parsedTokenCount; parsedTokenIndex++) {
-      struct json_token *token = jsonParser->tokens + beforeTokenCount + parsedTokenIndex;
-      token->start += cursor.position;
-      token->end += cursor.position;
-    }
-
-    StringCursorAdvanceAfterCRLF(&cursor);
-  }
-
-  return 1;
+end:
+  parser->tokenCount += writtenTokenCount;
+  parser->position = cursor.position;
+  return writtenTokenCount > 0;
 }
-
-#endif
