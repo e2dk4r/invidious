@@ -161,31 +161,6 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
   }
 }
 
-internalfn string_builder *
-MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLength)
-{
-  debug_assert(outBufferLength > 0);
-  string_builder *sb = MemoryArenaPushUnaligned(arena, sizeof(*sb));
-
-  string *outBuffer = MemoryArenaPushUnaligned(arena, sizeof(*outBuffer));
-  outBuffer->length = outBufferLength;
-  outBuffer->value = MemoryArenaPushUnaligned(arena, sizeof(u8) * outBuffer->length);
-  sb->outBuffer = outBuffer;
-
-  if (stringBufferLength == 0) {
-    // do not need to convert any variable, all strings
-    sb->stringBuffer = 0;
-  } else {
-    string *stringBuffer = MemoryArenaPushUnaligned(arena, sizeof(*stringBuffer));
-    stringBuffer->length = stringBufferLength;
-    stringBuffer->value = MemoryArenaPushUnaligned(arena, sizeof(u8) * stringBuffer->length);
-    sb->stringBuffer = stringBuffer;
-  }
-  sb->length = 0;
-
-  return sb;
-}
-
 int
 main(void)
 {
