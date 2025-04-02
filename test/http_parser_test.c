@@ -51,6 +51,7 @@ StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error er
 {
   struct string httpParserErrorTexts[] = {
       [HTTP_PARSER_ERROR_NONE] = STRING_FROM_ZERO_TERMINATED("None"),
+      [HTTP_PARSER_ERROR_OUT_OF_MEMORY] = STRING_FROM_ZERO_TERMINATED("Out of memory"),
       [HTTP_PARSER_ERROR_HTTP_VERSION_INVALID] = STRING_FROM_ZERO_TERMINATED("HTTP version is invalid"),
       [HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1] = STRING_FROM_ZERO_TERMINATED("HTTP version 1.1 is expected"),
       [HTTP_PARSER_ERROR_STATUS_CODE_INVALID] = STRING_FROM_ZERO_TERMINATED("Status code is invalid"),
@@ -61,8 +62,12 @@ StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error er
       [HTTP_PARSER_ERROR_REASON_PHRASE_INVALID] = STRING_FROM_ZERO_TERMINATED("Reason phrase is invalid"),
       [HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field name is required"),
       [HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field value is required"),
+      [HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER] =
+          STRING_FROM_ZERO_TERMINATED("Content length must be positive number"),
+      [HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING] = STRING_FROM_ZERO_TERMINATED("Unsupported transfer encoding"),
       [HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID] = STRING_FROM_ZERO_TERMINATED("Chunk size is invalid"),
       [HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED] = STRING_FROM_ZERO_TERMINATED("Chunk data is malformed"),
+      [HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH] = STRING_FROM_ZERO_TERMINATED("Content has invalid length"),
       [HTTP_PARSER_ERROR_PARTIAL] = STRING_FROM_ZERO_TERMINATED("Partial response"),
   };
   struct string *httpParserErrorText = httpParserErrorTexts + (u32)error;
@@ -79,7 +84,6 @@ StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
       [HTTP_TOKEN_STATUS_CODE] = STRING_FROM_ZERO_TERMINATED("Status code"),
       [HTTP_TOKEN_REASON_PHRASE] = STRING_FROM_ZERO_TERMINATED("Reason Phrase"),
 
-      [HTTP_TOKEN_HEADER_FIRSTONE_INTERNAL] = STRING_FROM_ZERO_TERMINATED("Header first one marker, internal"),
       [HTTP_TOKEN_HEADER_CACHE_CONTROL] = STRING_FROM_ZERO_TERMINATED("Cache-Control"),
       [HTTP_TOKEN_HEADER_CONNECTION] = STRING_FROM_ZERO_TERMINATED("Connection"),
       [HTTP_TOKEN_HEADER_DATE] = STRING_FROM_ZERO_TERMINATED("Date"),
@@ -106,8 +110,6 @@ StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
       [HTTP_TOKEN_HEADER_CONTENT_TYPE] = STRING_FROM_ZERO_TERMINATED("Content-Type"),
       [HTTP_TOKEN_HEADER_EXPIRES] = STRING_FROM_ZERO_TERMINATED("Expires"),
       [HTTP_TOKEN_HEADER_LAST_MODIFIED] = STRING_FROM_ZERO_TERMINATED("Last-Modified"),
-
-      [HTTP_TOKEN_HEADER_LASTONE_INTERNAL] = STRING_FROM_ZERO_TERMINATED("Header last one marker, internal"),
 
       [HTTP_TOKEN_CHUNK_SIZE] = STRING_FROM_ZERO_TERMINATED("Chunk size"),
       [HTTP_TOKEN_CHUNK_DATA] = STRING_FROM_ZERO_TERMINATED("Chunk data"),
@@ -465,7 +467,7 @@ main(void)
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
         StringBuilderAppendHttpParserError(sb, expectedError);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  got error: "));
+        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got error: "));
         StringBuilderAppendHttpParserError(sb, gotError);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
@@ -685,13 +687,16 @@ main(void)
                         //// first chunk data
                         /**/ "[ 4029"),
                     STRING_FROM_ZERO_TERMINATED(
-                        /**/ ", 2104" CRLF
-                             //// second chunk size (format: hex digits)
-                             /**/ "9" CRLF
+                        /**/ ", 2104"),
+                    STRING_FROM_ZERO_TERMINATED(
+                        /**/ CRLF
+                        //// second chunk size (format: hex digits)
+                        /**/ "9" CRLF
                              //// second chunk data
                              /**/ "9342, 0 ]" CRLF
                              //// Last chunk
                              /**/ "0" CRLF CRLF),
+
                 },
             .expected =
                 {
@@ -753,12 +758,15 @@ main(void)
 
       enum http_parser_error expectedError = testCase->expected.error;
 
+      if (testCase->httpResponseCount == 3) {
+        u32 breakHere = 1;
+      }
+
       // Parse http partial responses
       for (u32 httpResponseIndex = 0; httpResponseIndex < httpResponseCount; httpResponseIndex++) {
         struct string *httpResponse = testCase->httpResponses + httpResponseIndex;
-        if (!HttpParse(httpParser, httpResponse))
-          if (httpParser->error != HTTP_PARSER_ERROR_PARTIAL)
-            break;
+        if (!HttpParse(httpParser, httpResponse) && httpParser->error != HTTP_PARSER_ERROR_PARTIAL)
+          break;
       }
 
       // Test http parser error

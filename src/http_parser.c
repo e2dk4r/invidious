@@ -36,9 +36,6 @@ enum http_token_type {
   HTTP_TOKEN_STATUS_CODE,
   HTTP_TOKEN_REASON_PHRASE,
 
-  // NOTE: Add headers after
-  HTTP_TOKEN_HEADER_FIRSTONE_INTERNAL,
-
   /* https://www.rfc-editor.org/rfc/rfc2616#section-4.5 "General Header Fields" */
 
   HTTP_TOKEN_HEADER_CACHE_CONTROL,
@@ -72,8 +69,7 @@ enum http_token_type {
   HTTP_TOKEN_HEADER_EXPIRES,
   HTTP_TOKEN_HEADER_LAST_MODIFIED,
 
-  // NOTE: Add headers before
-  HTTP_TOKEN_HEADER_LASTONE_INTERNAL,
+  HTTP_TOKEN_CONTENT,
 
   /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding" */
   HTTP_TOKEN_CHUNK_SIZE,
@@ -89,6 +85,7 @@ struct http_token {
 
 enum http_parser_error {
   HTTP_PARSER_ERROR_NONE,
+  HTTP_PARSER_ERROR_OUT_OF_MEMORY,
   HTTP_PARSER_ERROR_HTTP_VERSION_INVALID,
   HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
   HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
@@ -97,18 +94,24 @@ enum http_parser_error {
   HTTP_PARSER_ERROR_REASON_PHRASE_INVALID,
   HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED,
   HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED,
+  HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER,
+  HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING,
   HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID,
   HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED,
+  HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH,
   HTTP_PARSER_ERROR_PARTIAL,
 };
 
 enum http_parser_state {
   HTTP_PARSER_STATE_STATUS_LINE_PARSED = (1 << 0),
   HTTP_PARSER_STATE_HEADERS_PARSED = (1 << 1),
+  HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY = (1 << 2),
+  HTTP_PARSER_STATE_HAS_CHUNKED_ENCODED_BODY = (1 << 3),
 };
 
 struct http_parser {
   u16 statusCode;
+  u64 contentLength;
 
   // TODO: Can be replaced by looping tokens.
   enum http_parser_state state;
@@ -147,12 +150,6 @@ MakeHttpParser(memory_arena *arena, u32 tokenCount)
   struct http_parser *parser = MemoryArenaPushUnaligned(arena, sizeof(*parser));
   HttpParserInit(parser, tokens, tokenCount);
   return parser;
-}
-
-internalfn b8
-IsHttpTokenHeader(struct http_token *token)
-{
-  return token->type > HTTP_TOKEN_HEADER_FIRSTONE_INTERNAL && token->type < HTTP_TOKEN_HEADER_LASTONE_INTERNAL;
 }
 
 internalfn struct string
@@ -203,7 +200,13 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       parser->error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1;
       goto end;
     } else {
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
+      u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+      if (tokenIndex == parser->tokenMax) {
+        parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+        goto end;
+      }
+      struct http_token *token = parser->tokens + tokenIndex;
+
       token->type = HTTP_TOKEN_HTTP_VERSION;
       token->start = cursor.position;
       token->end = token->start + httpVersion.length;
@@ -229,7 +232,13 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       parser->error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999;
       goto end;
     } else {
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
+      u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+      if (tokenIndex == parser->tokenMax) {
+        parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+        goto end;
+      }
+      struct http_token *token = parser->tokens + tokenIndex;
+
       token->type = HTTP_TOKEN_STATUS_CODE;
       token->start = cursor.position;
       token->end = token->start + statusCodeText.length;
@@ -338,7 +347,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("last-modified")))
         tokenType = HTTP_TOKEN_HEADER_LAST_MODIFIED;
 
-      if (!(tokenType > HTTP_TOKEN_HEADER_FIRSTONE_INTERNAL && tokenType < HTTP_TOKEN_HEADER_LASTONE_INTERNAL)) {
+      if (tokenType == HTTP_TOKEN_NONE) {
         // Pass unrecognized http header fields
         StringCursorAdvanceAfter(&cursor, CRLF);
         continue;
@@ -354,7 +363,34 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
         goto end;
       }
 
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
+      if (tokenType == HTTP_TOKEN_HEADER_TRANSFER_ENCODING &&
+          !IsStringEqual(&trimmedFieldValue, &STRING_FROM_ZERO_TERMINATED("chunked"))) {
+        parser->error = HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING;
+        goto end;
+      }
+
+      if (tokenType == HTTP_TOKEN_HEADER_TRANSFER_ENCODING) {
+        parser->state |= HTTP_PARSER_STATE_HAS_CHUNKED_ENCODED_BODY;
+      }
+
+      if (tokenType == HTTP_TOKEN_HEADER_CONTENT_LENGTH) {
+        parser->state |= HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY;
+        u64 contentLength;
+        if (!ParseU64(&trimmedFieldValue, &contentLength)) {
+          parser->error = HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER;
+          goto end;
+        }
+
+        parser->contentLength = contentLength;
+      }
+
+      u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+      if (tokenIndex == parser->tokenMax) {
+        parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+        goto end;
+      }
+      struct http_token *token = parser->tokens + tokenIndex;
+
       token->type = tokenType;
       token->start = cursor.position + ((u64)trimmedFieldValue.value - (u64)fieldValue.value);
       token->end = token->start + trimmedFieldValue.length;
@@ -375,6 +411,33 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
   /*****************************************************************
    * Parsing Message-Body
    *****************************************************************/
+  /*
+   * The presence of a message-body in a request is signaled by the
+   * inclusion of a Content-Length or Transfer-Encoding header field in
+   * the request's message-headers.
+   * ...
+   * All 1xx (informational), 204 (no content), and 304 (not modified)
+   * responses MUST NOT include a message-body. All other responses do include
+   * a message-body, although it MAY be of zero length.
+   */
+  if ((parser->statusCode >= 100 && parser->statusCode <= 199) && parser->statusCode == 204 &&
+      parser->statusCode == 304)
+    goto end;
+
+  // Parse content
+  if (parser->state & HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY) {
+    u64 contentLength = parser->contentLength;
+
+    // LEFTOFF: Parse body limited by content length
+  }
+
+  struct http_token *partialToken = 0;
+  {
+    struct http_token *lastToken = parser->tokens + parser->tokenCount - 1;
+    if (lastToken->type == HTTP_TOKEN_CHUNK_DATA && lastToken->end == 0)
+      partialToken = lastToken;
+  }
+
   while (!IsStringCursorAtEnd(&cursor)) {
     /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding"
      *   Chunked-Body   = *chunk
@@ -394,50 +457,81 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
      *   trailer        = *(entity-header CRLF)
      */
 
-    // Extract chunk size
-    struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
-    struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
-    if (IsStringEqual(&chunkSizeText, lastChunkSizeText)) {
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
-      token->type = HTTP_TOKEN_LAST_CHUNK;
-      token->start = cursor.position;
-      token->end = token->start + lastChunkSizeText->length;
-      token->start += parser->position;
-      token->end += parser->position;
-      writtenTokenCount++;
-      goto end;
+    if (!partialToken) {
+      // Extract chunk size
+      struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
+      struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
+      if (IsStringEqual(&chunkSizeText, lastChunkSizeText) &&
+          // and CRLF must be found
+          chunkSizeText.length != StringCursorRemainingLength(&cursor)) {
+        u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+        if (tokenIndex == parser->tokenMax) {
+          parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+          goto end;
+        }
+        struct http_token *token = parser->tokens + tokenIndex;
+
+        token->type = HTTP_TOKEN_LAST_CHUNK;
+        token->start = cursor.position;
+        token->end = token->start + lastChunkSizeText->length;
+        token->start += parser->position;
+        token->end += parser->position;
+        writtenTokenCount++;
+        goto end;
+      }
+
+      u64 chunkSize;
+      if (!ParseHex(&chunkSizeText, &chunkSize)) {
+        parser->error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID;
+        goto end;
+      } else {
+        u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+        if (tokenIndex == parser->tokenMax) {
+          parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+          goto end;
+        }
+        struct http_token *token = parser->tokens + tokenIndex;
+
+        token->type = HTTP_TOKEN_CHUNK_SIZE;
+        token->start = cursor.position;
+        token->end = token->start + chunkSizeText.length;
+        token->start += parser->position;
+        token->end += parser->position;
+        writtenTokenCount++;
+      }
+
+      // Advance after chunk size
+      cursor.position += chunkSizeText.length + CRLF->length;
     }
 
-    u64 chunkSize;
-    if (!ParseHex(&chunkSizeText, &chunkSize)) {
-      parser->error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID;
-      goto end;
-    } else {
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
-      token->type = HTTP_TOKEN_CHUNK_SIZE;
-      token->start = cursor.position;
-      token->end = token->start + chunkSizeText.length;
-      token->start += parser->position;
-      token->end += parser->position;
-      writtenTokenCount++;
-    }
-
-    // Advance after chunk size
-    cursor.position += chunkSizeText.length + CRLF->length;
-
+    // Extract chunk data
     struct string chunkData = StringCursorExtractUntil(&cursor, CRLF);
-    if (chunkSize != chunkData.length) {
-      parser->error = HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED;
-      goto end;
-    } else {
-      struct http_token *token = parser->tokens + parser->tokenCount + writtenTokenCount;
+    struct http_token *token = partialToken;
+    if (!token) {
+      // If it is not partial chunk data, create new
+      u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+      if (tokenIndex == parser->tokenMax) {
+        parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+        goto end;
+      }
+      token = parser->tokens + tokenIndex;
+
       token->type = HTTP_TOKEN_CHUNK_DATA;
       token->start = cursor.position;
-      token->end = token->start + chunkData.length;
       token->start += parser->position;
-      token->end += parser->position;
+
       writtenTokenCount++;
     }
+    if (chunkData.length == StringCursorRemainingLength(&cursor)) {
+      token->end = 0;
+      parser->error = HTTP_PARSER_ERROR_PARTIAL;
+      cursor.position += chunkData.length;
+      goto end;
+    }
+    partialToken = 0;
+
+    token->end = cursor.position + chunkData.length;
+    token->end += parser->position;
 
     // Advance after chunk data
     cursor.position += chunkData.length + CRLF->length;
@@ -450,6 +544,6 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
 
 end:
   parser->tokenCount += writtenTokenCount;
-  parser->position = cursor.position;
+  parser->position += cursor.position;
   return writtenTokenCount > 0;
 }

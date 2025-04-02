@@ -181,7 +181,7 @@ main(void)
   u64 responseBufferMax = 256 * KILOBYTES;
   u8 *responseBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
   struct string response;
-  struct http_parser *httpParser = MakeHttpParser(&stackMemory, 32);
+  struct http_parser *httpParser = MakeHttpParser(&stackMemory, 16);
   {
     u64 totalBytesRead = 0;
     while (1) {
@@ -209,7 +209,6 @@ main(void)
         break; // EOF
 
       struct string packet = StringFromBuffer(responseBuffer + totalBytesRead, bytesRead);
-      u32 breakHere = 1;
       b8 ok = HttpParse(httpParser, &packet);
       if (!ok && httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Http parser failed."));
@@ -266,7 +265,8 @@ main(void)
   struct string json = StringBuilderFlush(jsonBuilder);
 
   // parse data as json
-  struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 256);
+  u32 breakHere = 1;
+  struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 4096);
   if (!JsonParse(jsonParser, &json)) {
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Json parser failed."));
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  error: "));
@@ -308,6 +308,34 @@ main(void)
       struct string message = StringBuilderFlush(sb);
       PrintString(&message);
       continue;
+    }
+
+    if (IsStringEqual(&key, &STRING_FROM_ZERO_TERMINATED("type"))) {
+      jsonTokenIndex++;
+      struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
+      if (titleToken->type != JSON_TOKEN_STRING) {
+        // expected title to be string
+        return 1;
+      }
+      struct string type = JsonTokenExtractString(titleToken, &json);
+
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Type: "));
+      StringBuilderAppendString(sb, &type);
+      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      continue;
+    }
+
+    jsonTokenIndex++;
+    struct json_token *valueToken = jsonParser->tokens + jsonTokenIndex;
+
+    // go to next key value pair
+    while (jsonTokenIndex < jsonParser->tokenCount - 1) {
+      struct json_token *token = jsonParser->tokens + jsonTokenIndex + 1;
+      if (valueToken->end < token->start)
+        break;
+      jsonTokenIndex++;
     }
   }
 
