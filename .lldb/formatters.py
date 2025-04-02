@@ -50,6 +50,8 @@ def string_cursor_summary(valobj, dict):
         return "(null string)"
     if value != 0 and length == 0:
         return "(empty string)"
+    if position == length:
+        return f'(position: {position}, remaining: {length - position})'
 
     process = valobj.GetProcess()
     error = lldb.SBError()
