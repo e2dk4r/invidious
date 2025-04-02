@@ -14,10 +14,11 @@ def string_summary(valobj, dict):
     process = valobj.GetProcess()
     error = lldb.SBError()
     readLength = min(length, 20)
-    raw_data = process.ReadMemory(value, readLength, error)
+    raw_data = process.ReadMemory(value, readLength, error).decode('utf-8', 'ignore')
+    raw_data = raw_data.replace("\t", "\\t").replace("\n", "\\n").replace("\v", "\\v").replace("\f", "\\f").replace("\r", "\\r")
 
     if error.Success():
-        return f'(length: {length}) "{raw_data.decode("utf-8", "ignore")}"'
+        return f'(length: {length}) "{raw_data}"'
     else:
         return "<error reading memory>"
 
@@ -32,10 +33,11 @@ def string_builder_summary(valobj, dict):
     process = valobj.GetProcess()
     error = lldb.SBError()
     readLength = min(length, 20)
-    raw_data = process.ReadMemory(out_buffer_value, readLength, error)
+    raw_data = process.ReadMemory(out_buffer_value, readLength, error).decode('utf-8', 'ignore')
+    raw_data = raw_data.replace("\t", "\\t").replace("\n", "\\n").replace("\v", "\\v").replace("\f", "\\f").replace("\r", "\\r")
 
     if error.Success():
-        return f'length: {length} "{raw_data.decode("utf-8", "ignore")}"'
+        return f'length: {length} "{raw_data}"'
     else:
         return "<error reading memory>"
 
@@ -56,10 +58,11 @@ def string_cursor_summary(valobj, dict):
     process = valobj.GetProcess()
     error = lldb.SBError()
     readLength = min(length - position, 20)
-    raw_data = process.ReadMemory(value + position, readLength, error)
+    raw_data = process.ReadMemory(value + position, readLength, error).decode('utf-8', 'ignore')
+    raw_data = raw_data.replace("\t", "\\t").replace("\n", "\\n").replace("\v", "\\v").replace("\f", "\\f").replace("\r", "\\r")
 
     if error.Success():
-        return f'(position: {position}, remaining: {length - position}) "{raw_data.decode("utf-8", "ignore")}"'
+        return f'(position: {position}, remaining: {length - position}) "{raw_data}"'
     else:
         return "<error reading memory>"
 
