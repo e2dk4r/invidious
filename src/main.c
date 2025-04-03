@@ -210,7 +210,9 @@ main(void)
 
       struct string packet = StringFromBuffer(responseBuffer + totalBytesRead, bytesRead);
       b8 ok = HttpParse(httpParser, &packet);
-      if (!ok && httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
+      if (ok)
+        break;
+      if (httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Http parser failed."));
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n     error: "));
         StringBuilderAppendU64(sb, (u64)httpParser->error);
@@ -223,12 +225,6 @@ main(void)
       }
 
       totalBytesRead += bytesRead;
-
-      // TODO: Other ways to detect if http response finished
-
-      struct http_token *lastHttpToken = httpParser->tokens + (httpParser->tokenCount - 1);
-      if (lastHttpToken->type == HTTP_TOKEN_LAST_CHUNK)
-        break;
     }
 
     response = StringFromBuffer(responseBuffer, totalBytesRead);

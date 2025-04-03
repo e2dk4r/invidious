@@ -13,10 +13,11 @@
  *     packet = StringFromBuffer(buf + position, readBytes);
  *     position += readBytes;
  *     ok = HttpParse(parser, packet);
- *     if (!ok && parser->error != PARTIAL)
- *       break
- *     if (parser->latestToken == END)
+ *     if (ok)
  *       break;
+ *     if (parser->error != PARTIAL)
+ *       print("http error")
+ *       exit(1)
  *   }
  * @endcode
  */
@@ -74,7 +75,6 @@ enum http_token_type {
   /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding" */
   HTTP_TOKEN_CHUNK_SIZE,
   HTTP_TOKEN_CHUNK_DATA,
-  HTTP_TOKEN_LAST_CHUNK,
 };
 
 struct http_token {
@@ -411,7 +411,8 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
   /*****************************************************************
    * Parsing Message-Body
    *****************************************************************/
-  /*
+  /* https://www.rfc-editor.org/rfc/rfc2616#section-4.3 "Message Body"
+   * ...
    * The presence of a message-body in a request is signaled by the
    * inclusion of a Content-Length or Transfer-Encoding header field in
    * the request's message-headers.
@@ -421,129 +422,167 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
    * a message-body, although it MAY be of zero length.
    */
   if ((parser->statusCode >= 100 && parser->statusCode <= 199) && parser->statusCode == 204 &&
-      parser->statusCode == 304)
+      parser->statusCode == 304 &&
+      (parser->state & (HTTP_PARSER_STATE_HAS_CHUNKED_ENCODED_BODY | HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY)) == 0)
     goto end;
 
-  // Parse content
-  if (parser->state & HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY) {
+  /* https://www.rfc-editor.org/rfc/rfc2616#section-4.4 "Message Length"
+   * ...
+   * Messages MUST NOT include both a Content-Length header field and a
+   * non-identity transfer-coding. If the message does include a non-
+   * identity transfer-coding, the Content-Length MUST be ignored.
+   */
+
+  // Parse chunked encoded body
+  if (parser->state & HTTP_PARSER_STATE_HAS_CHUNKED_ENCODED_BODY) {
+    struct http_token *partialToken = 0;
+    {
+      struct http_token *lastToken = parser->tokens + parser->tokenCount - 1;
+      if (lastToken->type == HTTP_TOKEN_CHUNK_DATA && lastToken->end == 0)
+        partialToken = lastToken;
+    }
+
+    while (!IsStringCursorAtEnd(&cursor)) {
+      /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding"
+       *   Chunked-Body   = *chunk
+       *                    last-chunk
+       *                    trailer
+       *                    CRLF
+       *
+       *   chunk          = chunk-size [ chunk-extension ] CRLF
+       *                    chunk-data CRLF
+       *   chunk-size     = 1*HEX
+       *   last-chunk     = 1*("0") [ chunk-extension ] CRLF
+       *
+       *   chunk-extension= *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
+       *   chunk-ext-name = token
+       *   chunk-ext-val  = token | quoted-string
+       *   chunk-data     = chunk-size(OCTET)
+       *   trailer        = *(entity-header CRLF)
+       */
+
+      if (!partialToken) {
+        // Extract chunk size
+        struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
+        struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
+        if (IsStringEqual(&chunkSizeText, lastChunkSizeText) &&
+            // and CRLF must be found
+            chunkSizeText.length != StringCursorRemainingLength(&cursor)) {
+          // finished
+          goto end;
+        }
+
+        u64 chunkSize;
+        if (!ParseHex(&chunkSizeText, &chunkSize)) {
+          parser->error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID;
+          goto end;
+        } else {
+          u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+          if (tokenIndex == parser->tokenMax) {
+            parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+            goto end;
+          }
+          struct http_token *token = parser->tokens + tokenIndex;
+
+          token->type = HTTP_TOKEN_CHUNK_SIZE;
+          token->start = cursor.position;
+          token->end = token->start + chunkSizeText.length;
+          token->start += parser->position;
+          token->end += parser->position;
+          writtenTokenCount++;
+        }
+
+        // Advance after chunk size
+        cursor.position += chunkSizeText.length + CRLF->length;
+      }
+
+      // Extract chunk data
+      struct string chunkData = StringCursorExtractUntil(&cursor, CRLF);
+      struct http_token *token = partialToken;
+      if (!token) {
+        // If it is not partial chunk data, create new
+        u32 tokenIndex = parser->tokenCount + writtenTokenCount;
+        if (tokenIndex == parser->tokenMax) {
+          parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+          goto end;
+        }
+        token = parser->tokens + tokenIndex;
+
+        token->type = HTTP_TOKEN_CHUNK_DATA;
+        token->start = cursor.position;
+        token->start += parser->position;
+
+        writtenTokenCount++;
+      }
+      if (chunkData.length == StringCursorRemainingLength(&cursor)) {
+        token->end = 0;
+        parser->error = HTTP_PARSER_ERROR_PARTIAL;
+        cursor.position += chunkData.length;
+        goto end;
+      }
+      partialToken = 0;
+
+      token->end = cursor.position + chunkData.length;
+      token->end += parser->position;
+
+      // Advance after chunk data
+      cursor.position += chunkData.length + CRLF->length;
+    }
+  }
+  // Parse content-length limited body
+  else if (parser->state & HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY) {
     u64 contentLength = parser->contentLength;
 
-    // LEFTOFF: Parse body limited by content length
-  }
+    struct http_token *partialToken = 0;
+    {
+      struct http_token *lastToken = parser->tokens + parser->tokenCount - 1;
+      if (lastToken->type == HTTP_TOKEN_CONTENT && lastToken->end == 0)
+        partialToken = lastToken;
+    }
 
-  struct http_token *partialToken = 0;
-  {
-    struct http_token *lastToken = parser->tokens + parser->tokenCount - 1;
-    if (lastToken->type == HTTP_TOKEN_CHUNK_DATA && lastToken->end == 0)
-      partialToken = lastToken;
-  }
+    while (!IsStringCursorAtEnd(&cursor)) {
+      // Extract content
+      struct string content = StringCursorExtractRemaining(&cursor);
 
-  while (!IsStringCursorAtEnd(&cursor)) {
-    /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding"
-     *   Chunked-Body   = *chunk
-     *                    last-chunk
-     *                    trailer
-     *                    CRLF
-     *
-     *   chunk          = chunk-size [ chunk-extension ] CRLF
-     *                    chunk-data CRLF
-     *   chunk-size     = 1*HEX
-     *   last-chunk     = 1*("0") [ chunk-extension ] CRLF
-     *
-     *   chunk-extension= *( ";" chunk-ext-name [ "=" chunk-ext-val ] )
-     *   chunk-ext-name = token
-     *   chunk-ext-val  = token | quoted-string
-     *   chunk-data     = chunk-size(OCTET)
-     *   trailer        = *(entity-header CRLF)
-     */
-
-    if (!partialToken) {
-      // Extract chunk size
-      struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
-      struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
-      if (IsStringEqual(&chunkSizeText, lastChunkSizeText) &&
-          // and CRLF must be found
-          chunkSizeText.length != StringCursorRemainingLength(&cursor)) {
+      struct http_token *token = partialToken;
+      if (!token) {
+        // If it is not partial chunk data, create new
         u32 tokenIndex = parser->tokenCount + writtenTokenCount;
         if (tokenIndex == parser->tokenMax) {
           parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
           goto end;
         }
-        struct http_token *token = parser->tokens + tokenIndex;
+        token = parser->tokens + tokenIndex;
 
-        token->type = HTTP_TOKEN_LAST_CHUNK;
+        token->type = HTTP_TOKEN_CONTENT;
         token->start = cursor.position;
-        token->end = token->start + lastChunkSizeText->length;
         token->start += parser->position;
-        token->end += parser->position;
-        writtenTokenCount++;
-        goto end;
-      }
 
-      u64 chunkSize;
-      if (!ParseHex(&chunkSizeText, &chunkSize)) {
-        parser->error = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID;
-        goto end;
-      } else {
-        u32 tokenIndex = parser->tokenCount + writtenTokenCount;
-        if (tokenIndex == parser->tokenMax) {
-          parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
-          goto end;
-        }
-        struct http_token *token = parser->tokens + tokenIndex;
-
-        token->type = HTTP_TOKEN_CHUNK_SIZE;
-        token->start = cursor.position;
-        token->end = token->start + chunkSizeText.length;
-        token->start += parser->position;
-        token->end += parser->position;
         writtenTokenCount++;
       }
-
-      // Advance after chunk size
-      cursor.position += chunkSizeText.length + CRLF->length;
-    }
-
-    // Extract chunk data
-    struct string chunkData = StringCursorExtractUntil(&cursor, CRLF);
-    struct http_token *token = partialToken;
-    if (!token) {
-      // If it is not partial chunk data, create new
-      u32 tokenIndex = parser->tokenCount + writtenTokenCount;
-      if (tokenIndex == parser->tokenMax) {
-        parser->error = HTTP_PARSER_ERROR_OUT_OF_MEMORY;
+      u64 end = cursor.position + content.length;
+      end += parser->position;
+      if (end - token->start != contentLength) {
+        token->end = 0;
+        parser->error = HTTP_PARSER_ERROR_PARTIAL;
+        cursor.position += content.length;
         goto end;
       }
-      token = parser->tokens + tokenIndex;
 
-      token->type = HTTP_TOKEN_CHUNK_DATA;
-      token->start = cursor.position;
-      token->start += parser->position;
+      partialToken = 0;
 
-      writtenTokenCount++;
-    }
-    if (chunkData.length == StringCursorRemainingLength(&cursor)) {
-      token->end = 0;
-      parser->error = HTTP_PARSER_ERROR_PARTIAL;
-      cursor.position += chunkData.length;
+      token->end = end;
+
+      // Advance after content
+      cursor.position += content.length;
       goto end;
     }
-    partialToken = 0;
-
-    token->end = cursor.position + chunkData.length;
-    token->end += parser->position;
-
-    // Advance after chunk data
-    cursor.position += chunkData.length + CRLF->length;
   }
 
-  if (IsStringCursorAtEnd(&cursor)) {
-    parser->error = HTTP_PARSER_ERROR_PARTIAL;
-    goto end;
-  }
+  parser->error = HTTP_PARSER_ERROR_PARTIAL;
 
 end:
   parser->tokenCount += writtenTokenCount;
   parser->position += cursor.position;
-  return writtenTokenCount > 0;
+  return parser->error == HTTP_PARSER_ERROR_NONE;
 }

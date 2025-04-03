@@ -113,7 +113,6 @@ StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
 
       [HTTP_TOKEN_CHUNK_SIZE] = STRING_FROM_ZERO_TERMINATED("Chunk size"),
       [HTTP_TOKEN_CHUNK_DATA] = STRING_FROM_ZERO_TERMINATED("Chunk data"),
-      [HTTP_TOKEN_LAST_CHUNK] = STRING_FROM_ZERO_TERMINATED("Last chunk"),
   };
   struct string *string = table + (u32)type;
   StringBuilderAppendString(sb, string);
@@ -349,6 +348,58 @@ main(void)
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
                 /**/ "Content-Type: application/json" CRLF
+                /**/ "Content-Length: 90" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                /**/ "[ 1, 2, 3 ]"),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_PARTIAL,
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Content-Length: 11" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                /**/ "[ 1, 2, 3 ]"),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_NONE,
+                    .httpTokenCount = 5,
+                    .httpTokens =
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                        // fields
+                    (struct http_token[]){
+                        {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
+                        {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 0x1f, .end = 0x2f},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_LENGTH, .start = 0x41, .end = 0x43},
+                        {.type = HTTP_TOKEN_CONTENT, .start = 0x47, .end = 0x52},
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                        // fields
+                    },
+                    .httpTokenStrings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
+                            STRING_FROM_ZERO_TERMINATED("200"),
+                            STRING_FROM_ZERO_TERMINATED("application/json"),
+                            STRING_FROM_ZERO_TERMINATED("11"),
+                            STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                        },
+                    .content = &STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                },
+        },
+        {
+            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Content-Type: application/json" CRLF
                 /**/ "Transfer-Encoding: chunked" CRLF
                 /**/ CRLF
                 /*** --- Message Body ------------------------------- ***/
@@ -361,9 +412,10 @@ main(void)
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_NONE,
-                    .httpTokenCount = 7,
+                    .httpTokenCount = 6,
                     .httpTokens =
-                        // NOTE: when changing this array, do not forget to update httpTokenCount field
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                        // fields
                     (struct http_token[]){
                         {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
                         {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
@@ -371,8 +423,8 @@ main(void)
                         {.type = HTTP_TOKEN_HEADER_TRANSFER_ENCODING, .start = 0x44, .end = 0x4b},
                         {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 0x4f, .end = 0x50},
                         {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x52, .end = 0x5d},
-                        {.type = HTTP_TOKEN_LAST_CHUNK, .start = 0x5f, .end = 0x60},
-                        // NOTE: when changing this array, do not forget to update httpTokenCount field
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                        // fields
                     },
                     .httpTokenStrings =
                         (struct string[]){
@@ -382,7 +434,6 @@ main(void)
                             STRING_FROM_ZERO_TERMINATED("chunked"),
                             STRING_FROM_ZERO_TERMINATED("b"),
                             STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
-                            STRING_FROM_ZERO_TERMINATED("0"),
                         },
                     .content = &STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
                 },
@@ -409,7 +460,7 @@ main(void)
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_NONE,
-                    .httpTokenCount = 9,
+                    .httpTokenCount = 8,
                     .httpTokens =
                         (struct http_token[]){
                             // NOTE: when changing this array, do not forget to update httpTokenCount field
@@ -421,7 +472,6 @@ main(void)
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x52, .end = 0x5e},
                             {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 0x60, .end = 0x61},
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x63, .end = 0x6c},
-                            {.type = HTTP_TOKEN_LAST_CHUNK, .start = 0x6e, .end = 0x6f},
                             // NOTE: when changing this array, do not forget to update httpTokenCount field
                         },
                     .httpTokenStrings =
@@ -434,7 +484,6 @@ main(void)
                             STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
                             STRING_FROM_ZERO_TERMINATED("9"),
                             STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
-                            STRING_FROM_ZERO_TERMINATED("0"),
                         },
                     .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
                 },
@@ -565,7 +614,7 @@ main(void)
       string_builder *contentBuilder = MakeStringBuilder(tempMemory.arena, maxContentLength, 0);
       for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
         struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
-        if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+        if (httpToken->type != HTTP_TOKEN_CHUNK_DATA && httpToken->type != HTTP_TOKEN_CONTENT)
           continue;
         struct string data = HttpTokenExtractString(httpToken, httpResponse);
         StringBuilderAppendString(contentBuilder, &data);
@@ -640,10 +689,11 @@ main(void)
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_NONE,
-                    .httpTokenCount = 9,
+                    .httpTokenCount = 8,
                     .httpTokens =
                         (struct http_token[]){
-                            // NOTE: when changing this array, do not forget to update httpTokenCount field
+                            // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                            // fields
                             {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
                             {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
                             {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 0x1f, .end = 0x2f},
@@ -652,8 +702,8 @@ main(void)
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x52, .end = 0x5e},
                             {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 0x60, .end = 0x61},
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x63, .end = 0x6c},
-                            {.type = HTTP_TOKEN_LAST_CHUNK, .start = 0x6e, .end = 0x6f},
-                            // NOTE: when changing this array, do not forget to update httpTokenCount field
+                            // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                            // fields
                         },
                     .httpTokenStrings =
                         (struct string[]){
@@ -665,7 +715,6 @@ main(void)
                             STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
                             STRING_FROM_ZERO_TERMINATED("9"),
                             STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
-                            STRING_FROM_ZERO_TERMINATED("0"),
                         },
                     .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
                 },
@@ -701,10 +750,11 @@ main(void)
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_NONE,
-                    .httpTokenCount = 9,
+                    .httpTokenCount = 8,
                     .httpTokens =
                         (struct http_token[]){
-                            // NOTE: when changing this array, do not forget to update httpTokenCount field
+                            // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                            // fields
                             {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
                             {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
                             {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 0x1f, .end = 0x2f},
@@ -713,8 +763,8 @@ main(void)
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x52, .end = 0x5e},
                             {.type = HTTP_TOKEN_CHUNK_SIZE, .start = 0x60, .end = 0x61},
                             {.type = HTTP_TOKEN_CHUNK_DATA, .start = 0x63, .end = 0x6c},
-                            {.type = HTTP_TOKEN_LAST_CHUNK, .start = 0x6e, .end = 0x6f},
-                            // NOTE: when changing this array, do not forget to update httpTokenCount field
+                            // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                            // fields
                         },
                     .httpTokenStrings =
                         (struct string[]){
@@ -726,7 +776,6 @@ main(void)
                             STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
                             STRING_FROM_ZERO_TERMINATED("9"),
                             STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
-                            STRING_FROM_ZERO_TERMINATED("0"),
                         },
                     .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
                 },
@@ -757,10 +806,6 @@ main(void)
       struct http_parser *httpParser = MakeHttpParser(tempMemory.arena, maxHttpTokenCount);
 
       enum http_parser_error expectedError = testCase->expected.error;
-
-      if (testCase->httpResponseCount == 3) {
-        u32 breakHere = 1;
-      }
 
       // Parse http partial responses
       for (u32 httpResponseIndex = 0; httpResponseIndex < httpResponseCount; httpResponseIndex++) {
