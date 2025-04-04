@@ -633,6 +633,30 @@ main(void)
         {
             .cursor =
                 {
+                    .source = &STRING_FROM_ZERO_TERMINATED("-10203 fool"),
+                    .position = 0,
+                },
+            .expected = STRING_FROM_ZERO_TERMINATED("-10203"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("-54.3023 fool"),
+                    .position = 0,
+                },
+            .expected = STRING_FROM_ZERO_TERMINATED("-54.3023"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &STRING_FROM_ZERO_TERMINATED("54.-3023 fool"),
+                    .position = 0,
+                },
+            .expected = STRING_FROM_ZERO_TERMINATED("54."),
+        },
+        {
+            .cursor =
+                {
                     .source = &STRING_FROM_ZERO_TERMINATED("5933 abcdef"),
                     .position = 1,
                 },

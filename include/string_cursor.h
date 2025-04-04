@@ -181,12 +181,14 @@ StringCursorExtractNumber(struct string_cursor *cursor)
   struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 count = 0;
-  for (u32 index = 0; index < remaining.length; index++) {
-    comptime b8 isNumberTable[U8_MAX] = {
-        ['-'] = 1, ['0'] = 1, ['1'] = 1, ['2'] = 1, ['3'] = 1, ['4'] = 1,
+  for (u64 index = 0; index < remaining.length; index++) {
+    comptime b8 allowed[U8_MAX] = {
+        ['.'] = 1, ['0'] = 1, ['1'] = 1, ['2'] = 1, ['3'] = 1, ['4'] = 1,
         ['5'] = 1, ['6'] = 1, ['7'] = 1, ['8'] = 1, ['9'] = 1,
     };
-    if (!isNumberTable[remaining.value[index]])
+
+    u8 character = remaining.value[index];
+    if (!(allowed[character] || (index == 0 && character == '-')))
       break;
 
     count++;

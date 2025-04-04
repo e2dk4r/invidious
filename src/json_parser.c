@@ -299,6 +299,7 @@ JsonParse(struct json_parser *parser, struct string *json)
 
     // JSON_TOKEN_NUMBER
     else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("-")) ||
+             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED(".")) ||
              StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("0")) ||
              StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("1")) ||
              StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("2")) ||

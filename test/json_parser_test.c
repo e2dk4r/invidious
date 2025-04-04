@@ -258,21 +258,59 @@ main(void)
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"a\": 1234 }"),
+            .json = &STRING_FROM_ZERO_TERMINATED("{ \"positive number\": 97168748 }"),
             .expected =
                 {
                     .tokenCount = 3,
                     .tokens =
                         (struct json_token[]){
-                            {.type = JSON_TOKEN_OBJECT, .start = 0, .end = 13},
-                            {.type = JSON_TOKEN_STRING, .start = 3, .end = 4},
-                            {.type = JSON_TOKEN_NUMBER, .start = 7, .end = 11},
+                            {.type = JSON_TOKEN_OBJECT, .start = 0x00, .end = 0x1f},
+                            {.type = JSON_TOKEN_STRING, .start = 0x03, .end = 0x12},
+                            {.type = JSON_TOKEN_NUMBER, .start = 0x15, .end = 0x1d},
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": 1234 }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("1234"),
+                            STRING_FROM_ZERO_TERMINATED("{ \"positive number\": 97168748 }"),
+                            STRING_FROM_ZERO_TERMINATED("positive number"),
+                            STRING_FROM_ZERO_TERMINATED("97168748"),
+                        },
+                },
+        },
+        {
+            .json = &STRING_FROM_ZERO_TERMINATED("{ \"negative number\": -27845898 }"),
+            .expected =
+                {
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 0x00, .end = 0x20},
+                            {.type = JSON_TOKEN_STRING, .start = 0x03, .end = 0x12},
+                            {.type = JSON_TOKEN_NUMBER, .start = 0x15, .end = 0x1e},
+                        },
+                    .strings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("{ \"negative number\": -27845898 }"),
+                            STRING_FROM_ZERO_TERMINATED("negative number"),
+                            STRING_FROM_ZERO_TERMINATED("-27845898"),
+                        },
+                },
+        },
+        {
+            .json = &STRING_FROM_ZERO_TERMINATED("{ \"decimal numeral\": 7415.2305 }"),
+            .expected =
+                {
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 0x00, .end = 0x20},
+                            {.type = JSON_TOKEN_STRING, .start = 0x03, .end = 0x12},
+                            {.type = JSON_TOKEN_NUMBER, .start = 0x15, .end = 0x1e},
+                        },
+                    .strings =
+                        (struct string[]){
+                            STRING_FROM_ZERO_TERMINATED("{ \"decimal numeral\": 7415.2305 }"),
+                            STRING_FROM_ZERO_TERMINATED("decimal numeral"),
+                            STRING_FROM_ZERO_TERMINATED("7415.2305"),
                         },
                 },
         },
