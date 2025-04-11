@@ -55,7 +55,7 @@ comptime struct text_test_error_info {
   enum text_test_error code;
   struct string message;
 } TEXT_TEST_ERRORS[] = {
-#define XX(tag, msg) {.code = tag, .message = STRING_FROM_ZERO_TERMINATED(msg)},
+#define XX(tag, msg) {.code = tag, .message = StringFromLiteral(msg)},
     TEST_ERROR_LIST(XX)
 #undef XX
 };
@@ -74,7 +74,7 @@ GetTextTestErrorMessage(enum text_test_error errorCode)
 internalfn void
 StringBuilderAppendBool(string_builder *sb, b8 value)
 {
-  StringBuilderAppendString(sb, value ? &STRING_FROM_ZERO_TERMINATED("true") : &STRING_FROM_ZERO_TERMINATED("false"));
+  StringBuilderAppendString(sb, value ? &StringFromLiteral("true") : &StringFromLiteral("false"));
 }
 
 internalfn void
@@ -169,28 +169,28 @@ main(void)
       b8 expected;
     } testCases[] = {
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("abc"),
             .expected = 1,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("ABC"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("ABC"),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("abc def ghi"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("abc def ghi"),
             .expected = 0,
         },
         // NULL
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED("foo"),
+            .right = &StringFromLiteral("foo"),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("foo"),
+            .left = &StringFromLiteral("foo"),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
@@ -201,44 +201,44 @@ main(void)
         },
         // EMPTY
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(""),
+            .right = &StringFromLiteral(""),
             .expected = 1,
         },
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .right = &StringFromLiteral(""),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(""),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
         // SPACE
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(" "),
+            .right = &StringFromLiteral(" "),
             .expected = 1,
         },
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .right = &StringFromLiteral(" "),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(" "),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(""),
+            .right = &StringFromLiteral(" "),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(" "),
+            .right = &StringFromLiteral(""),
             .expected = 0,
         },
     };
@@ -279,33 +279,33 @@ main(void)
       b8 expected;
     } testCases[] = {
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("ABC"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("ABC"),
             .expected = 1,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("ABC"),
-            .right = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .left = &StringFromLiteral("ABC"),
+            .right = &StringFromLiteral("abc"),
             .expected = 1,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("abc"),
             .expected = 1,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("abc"),
-            .right = &STRING_FROM_ZERO_TERMINATED("abc def ghi"),
+            .left = &StringFromLiteral("abc"),
+            .right = &StringFromLiteral("abc def ghi"),
             .expected = 0,
         },
         // NULL
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED("foo"),
+            .right = &StringFromLiteral("foo"),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED("foo"),
+            .left = &StringFromLiteral("foo"),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
@@ -316,44 +316,44 @@ main(void)
         },
         // EMPTY
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(""),
+            .right = &StringFromLiteral(""),
             .expected = 1,
         },
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .right = &StringFromLiteral(""),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(""),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
         // SPACE
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(" "),
+            .right = &StringFromLiteral(" "),
             .expected = 1,
         },
         {
             .left = &(struct string){.value = 0},
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .right = &StringFromLiteral(" "),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(" "),
             .right = &(struct string){.value = 0},
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(""),
-            .right = &STRING_FROM_ZERO_TERMINATED(" "),
+            .left = &StringFromLiteral(""),
+            .right = &StringFromLiteral(" "),
             .expected = 0,
         },
         {
-            .left = &STRING_FROM_ZERO_TERMINATED(" "),
-            .right = &STRING_FROM_ZERO_TERMINATED(""),
+            .left = &StringFromLiteral(" "),
+            .right = &StringFromLiteral(""),
             .expected = 0,
         },
     };
@@ -394,28 +394,28 @@ main(void)
       b8 expected;
     } testCases[] = {
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("abc"),
             .expected = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("def"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("def"),
             .expected = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("ghi"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("ghi"),
             .expected = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("ghijkl"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("ghijkl"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("jkl"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("jkl"),
             .expected = 0,
         },
     };
@@ -456,28 +456,28 @@ main(void)
       enum text_test_error error;
     } testCases[] = {
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("abc"),
             .expected = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("def"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("def"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("ghi"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("ghi"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("ghijkl"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("ghijkl"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("jkl"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("jkl"),
             .expected = 0,
         },
     };
@@ -518,28 +518,28 @@ main(void)
       enum text_test_error error;
     } testCases[] = {
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("ghi"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("ghi"),
             .expected = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("abc"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("def"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("def"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("abc def"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("abc def"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc def ghi"),
-            .search = STRING_FROM_ZERO_TERMINATED("jkl"),
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral("jkl"),
             .expected = 0,
         },
     };
@@ -579,36 +579,36 @@ main(void)
       struct string expected;
     } testCases[] = {
         {
-            .string = STRING_FROM_ZERO_TERMINATED(" abc \n"),
-            .expected = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral(" abc \n"),
+            .expected = StringFromLiteral("abc"),
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("\t123"),
-            .expected = STRING_FROM_ZERO_TERMINATED("123"),
+            .string = StringFromLiteral("\t123"),
+            .expected = StringFromLiteral("123"),
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("123\t\r\n"),
-            .expected = STRING_FROM_ZERO_TERMINATED("123"),
+            .string = StringFromLiteral("123\t\r\n"),
+            .expected = StringFromLiteral("123"),
         },
         {
             .string = {},
             .expected = {},
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED(""),
+            .string = StringFromLiteral(""),
             .expected = {},
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("\n\t\v\f"),
+            .string = StringFromLiteral("\n\t\v\f"),
             .expected = {},
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc"),
-            .expected = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral("abc"),
+            .expected = StringFromLiteral("abc"),
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("123 456"),
-            .expected = STRING_FROM_ZERO_TERMINATED("123 456"),
+            .string = StringFromLiteral("123 456"),
+            .expected = StringFromLiteral("123 456"),
         },
     };
 
@@ -636,7 +636,7 @@ main(void)
     }
   } else {
     struct string errorMessage =
-        STRING_FROM_ZERO_TERMINATED("Warning: StringStripWhitespace() test skipped because IsStringEqual() failed\n.");
+        StringFromLiteral("Warning: StringStripWhitespace() test skipped because IsStringEqual() failed\n.");
     PrintString(&errorMessage);
   }
 
@@ -648,49 +648,49 @@ main(void)
       b8 expected;
     } testCases[] = {
         {
-            .string = STRING_FROM_ZERO_TERMINATED("1ns"),
+            .string = StringFromLiteral("1ns"),
             .expected = 1,
             .expectedDurationInNanoseconds = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("1ns"),
+            .string = StringFromLiteral("1ns"),
             .expected = 1,
             .expectedDurationInNanoseconds = 1,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("1sec"),
+            .string = StringFromLiteral("1sec"),
             .expected = 1,
             .expectedDurationInNanoseconds = 1 * 1000000000ull /* 1e9 */,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("5sec"),
+            .string = StringFromLiteral("5sec"),
             .expected = 1,
             .expectedDurationInNanoseconds = 5 * 1000000000ull /* 1e9 */,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("7min"),
+            .string = StringFromLiteral("7min"),
             .expected = 1,
             .expectedDurationInNanoseconds = 1000000000ull /* 1e9 */ * 60 * 7,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("1hr5min"),
+            .string = StringFromLiteral("1hr5min"),
             .expected = 1,
             .expectedDurationInNanoseconds =
                 (1000000000ull /* 1e9 */ * 60 * 60 * 1) + (1000000000ull /* 1e9 */ * 60 * 5),
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("1hr5min"),
+            .string = StringFromLiteral("1hr5min"),
             .expected = 1,
             .expectedDurationInNanoseconds =
                 (1000000000ull /* 1e9 */ * 60 * 60 * 1) + (1000000000ull /* 1e9 */ * 60 * 5),
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("10day"),
+            .string = StringFromLiteral("10day"),
             .expected = 1,
             .expectedDurationInNanoseconds = 1000000000ULL /* 1e9 */ * 60 * 60 * 24 * 10,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("10day1sec"),
+            .string = StringFromLiteral("10day1sec"),
             .expected = 1,
             .expectedDurationInNanoseconds =
                 (1000000000ull /* 1e9 */ * 60 * 60 * 24 * 10) + (1000000000ull /* 1e9 */ * 1),
@@ -700,19 +700,19 @@ main(void)
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED(""), // EMPTY
+            .string = StringFromLiteral(""), // EMPTY
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED(" "), // SPACE
+            .string = StringFromLiteral(" "), // SPACE
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("abc"),
+            .string = StringFromLiteral("abc"),
             .expected = 0,
         },
         {
-            .string = STRING_FROM_ZERO_TERMINATED("5m5s"),
+            .string = StringFromLiteral("5m5s"),
             .expected = 0,
         },
     };
@@ -817,7 +817,7 @@ main(void)
       } expected;
     } testCases[] = {
         {
-            .input = STRING_FROM_ZERO_TERMINATED("0"),
+            .input = StringFromLiteral("0"),
             .expected =
                 {
                     .result = 1,
@@ -825,7 +825,7 @@ main(void)
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("fa"),
+            .input = StringFromLiteral("fa"),
             .expected =
                 {
                     .result = 1,
@@ -833,7 +833,7 @@ main(void)
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("123456789abcdef"),
+            .input = StringFromLiteral("123456789abcdef"),
             .expected =
                 {
                     .result = 1,
@@ -841,7 +841,7 @@ main(void)
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("123456789ABCDEF"),
+            .input = StringFromLiteral("123456789ABCDEF"),
             .expected =
                 {
                     .result = 1,
@@ -849,7 +849,7 @@ main(void)
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("ffffffffffffffff"),
+            .input = StringFromLiteral("ffffffffffffffff"),
             .expected =
                 {
                     .result = 1,
@@ -864,14 +864,14 @@ main(void)
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED(""),
+            .input = StringFromLiteral(""),
             .expected =
                 {
                     .result = 0,
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("not a hexadecimal 1340"),
+            .input = StringFromLiteral("not a hexadecimal 1340"),
             .expected =
                 {
                     .result = 0,
@@ -919,23 +919,23 @@ main(void)
     } testCases[] = {
         {
             .input = 0,
-            .expected = STRING_FROM_ZERO_TERMINATED("0"),
+            .expected = StringFromLiteral("0"),
         },
         {
             .input = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("1"),
+            .expected = StringFromLiteral("1"),
         },
         {
             .input = 10,
-            .expected = STRING_FROM_ZERO_TERMINATED("10"),
+            .expected = StringFromLiteral("10"),
         },
         {
             .input = 3912,
-            .expected = STRING_FROM_ZERO_TERMINATED("3912"),
+            .expected = StringFromLiteral("3912"),
         },
         {
             .input = 18446744073709551615UL,
-            .expected = STRING_FROM_ZERO_TERMINATED("18446744073709551615"),
+            .expected = StringFromLiteral("18446744073709551615"),
         },
         // TODO: fail cases for FormatU64()
     };
@@ -977,72 +977,72 @@ main(void)
         {
             .input = 0.99f,
             .fractionCount = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("0.9"),
+            .expected = StringFromLiteral("0.9"),
         },
         {
             .input = 0.99f,
             .fractionCount = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("0.9"),
+            .expected = StringFromLiteral("0.9"),
         },
         {
             .input = 1.0f,
             .fractionCount = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("1.0"),
+            .expected = StringFromLiteral("1.0"),
         },
         {
             .input = 1.0f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("1.00"),
+            .expected = StringFromLiteral("1.00"),
         },
         {
             .input = 9.05f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("9.05"),
+            .expected = StringFromLiteral("9.05"),
         },
         {
             .input = 2.50f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("2.50"),
+            .expected = StringFromLiteral("2.50"),
         },
         {
             .input = 2.55999f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("2.56"),
+            .expected = StringFromLiteral("2.56"),
         },
         {
             .input = 4.99966526f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("4.99"),
+            .expected = StringFromLiteral("4.99"),
         },
         {
             .input = 10234.293f,
             .fractionCount = 3,
-            .expected = STRING_FROM_ZERO_TERMINATED("10234.293"),
+            .expected = StringFromLiteral("10234.293"),
         },
         {
             .input = -0.99f,
             .fractionCount = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("-0.9"),
+            .expected = StringFromLiteral("-0.9"),
         },
         {
             .input = -1.0f,
             .fractionCount = 1,
-            .expected = STRING_FROM_ZERO_TERMINATED("-1.0"),
+            .expected = StringFromLiteral("-1.0"),
         },
         {
             .input = -1.0f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("-1.00"),
+            .expected = StringFromLiteral("-1.00"),
         },
         {
             .input = -2.50f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("-2.50"),
+            .expected = StringFromLiteral("-2.50"),
         },
         {
             .input = -2.55999f,
             .fractionCount = 2,
-            .expected = STRING_FROM_ZERO_TERMINATED("-2.56"),
+            .expected = StringFromLiteral("-2.56"),
         },
         // TODO: fail cases for FormatF32Slow()
     };
@@ -1085,19 +1085,19 @@ main(void)
     } testCases[] = {
         {
             .input = 0x0,
-            .expected = STRING_FROM_ZERO_TERMINATED("00"),
+            .expected = StringFromLiteral("00"),
         },
         {
             .input = 0x4,
-            .expected = STRING_FROM_ZERO_TERMINATED("04"),
+            .expected = StringFromLiteral("04"),
         },
         {
             .input = 0x0abc,
-            .expected = STRING_FROM_ZERO_TERMINATED("0abc"),
+            .expected = StringFromLiteral("0abc"),
         },
         {
             .input = 0x00f2aa499b9028eaUL,
-            .expected = STRING_FROM_ZERO_TERMINATED("00f2aa499b9028ea"),
+            .expected = StringFromLiteral("00f2aa499b9028ea"),
         },
         // TODO: fail cases for FormatHex()
     };
@@ -1136,27 +1136,27 @@ main(void)
       struct string expected;
     } testCases[] = {
         {
-            .input = STRING_FROM_ZERO_TERMINATED("/usr/bin/ls"),
-            .expected = STRING_FROM_ZERO_TERMINATED("/usr/bin"),
+            .input = StringFromLiteral("/usr/bin/ls"),
+            .expected = StringFromLiteral("/usr/bin"),
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("/usr"),
-            .expected = STRING_FROM_ZERO_TERMINATED("/"),
+            .input = StringFromLiteral("/usr"),
+            .expected = StringFromLiteral("/"),
         },
         {
             .input = (struct string){.value = 0},
             .expected = (struct string){.value = 0},
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED(""),
+            .input = StringFromLiteral(""),
             .expected = (struct string){.value = 0},
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED(" "),
+            .input = StringFromLiteral(" "),
             .expected = (struct string){.value = 0},
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("no directory"),
+            .input = StringFromLiteral("no directory"),
             .expected = (struct string){.value = 0},
         },
     };
@@ -1199,84 +1199,84 @@ main(void)
       } expected;
     } testCases[] = {
         {
-            .input = STRING_FROM_ZERO_TERMINATED("1 2 3"),
-            .seperator = STRING_FROM_ZERO_TERMINATED(" "),
+            .input = StringFromLiteral("1 2 3"),
+            .seperator = StringFromLiteral(" "),
             .expected =
                 {
                     .value = 1,
                     .splitCount = 3,
                     .splits =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("1"),
-                            STRING_FROM_ZERO_TERMINATED("2"),
-                            STRING_FROM_ZERO_TERMINATED("3"),
+                            StringFromLiteral("1"),
+                            StringFromLiteral("2"),
+                            StringFromLiteral("3"),
                         },
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("1xx2xx3"),
-            .seperator = STRING_FROM_ZERO_TERMINATED("xx"),
+            .input = StringFromLiteral("1xx2xx3"),
+            .seperator = StringFromLiteral("xx"),
             .expected =
                 {
                     .value = 1,
                     .splitCount = 3,
                     .splits =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("1"),
-                            STRING_FROM_ZERO_TERMINATED("2"),
-                            STRING_FROM_ZERO_TERMINATED("3"),
+                            StringFromLiteral("1"),
+                            StringFromLiteral("2"),
+                            StringFromLiteral("3"),
                         },
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("1xoxo2xo3"),
-            .seperator = STRING_FROM_ZERO_TERMINATED("xo"),
+            .input = StringFromLiteral("1xoxo2xo3"),
+            .seperator = StringFromLiteral("xo"),
             .expected =
                 {
                     .value = 1,
                     .splitCount = 4,
                     .splits =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("1"),
+                            StringFromLiteral("1"),
                             {},
-                            STRING_FROM_ZERO_TERMINATED("2"),
-                            STRING_FROM_ZERO_TERMINATED("3"),
+                            StringFromLiteral("2"),
+                            StringFromLiteral("3"),
                         },
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("1xo2xo3xo"),
-            .seperator = STRING_FROM_ZERO_TERMINATED("xo"),
+            .input = StringFromLiteral("1xo2xo3xo"),
+            .seperator = StringFromLiteral("xo"),
             .expected =
                 {
                     .value = 1,
                     .splitCount = 4,
                     .splits =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("1"),
-                            STRING_FROM_ZERO_TERMINATED("2"),
-                            STRING_FROM_ZERO_TERMINATED("3"),
+                            StringFromLiteral("1"),
+                            StringFromLiteral("2"),
+                            StringFromLiteral("3"),
                             {},
                         },
                 },
         },
         {
-            .input = STRING_FROM_ZERO_TERMINATED("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
-            .seperator = STRING_FROM_ZERO_TERMINATED(" "),
+            .input = StringFromLiteral("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
+            .seperator = StringFromLiteral(" "),
             .expected =
                 {
                     .value = 1,
                     .splitCount = 8,
                     .splits =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum"),
-                            STRING_FROM_ZERO_TERMINATED("dolor"),
-                            STRING_FROM_ZERO_TERMINATED("sit"),
-                            STRING_FROM_ZERO_TERMINATED("amet,"),
-                            STRING_FROM_ZERO_TERMINATED("consectetur"),
-                            STRING_FROM_ZERO_TERMINATED("adipiscing"),
-                            STRING_FROM_ZERO_TERMINATED("elit"),
+                            StringFromLiteral("Lorem"),
+                            StringFromLiteral("ipsum"),
+                            StringFromLiteral("dolor"),
+                            StringFromLiteral("sit"),
+                            StringFromLiteral("amet,"),
+                            StringFromLiteral("consectetur"),
+                            StringFromLiteral("adipiscing"),
+                            StringFromLiteral("elit"),
                         },
                 },
         },

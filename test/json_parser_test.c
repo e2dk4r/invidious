@@ -30,7 +30,7 @@ comptime struct json_parser_test_error_info {
   enum json_parser_test_error code;
   struct string message;
 } TEXT_TEST_ERRORS[] = {
-#define XX(tag, msg) {.code = JSON_PARSER_TEST_ERROR_##tag, .message = STRING_FROM_ZERO_TERMINATED(msg)},
+#define XX(tag, msg) {.code = JSON_PARSER_TEST_ERROR_##tag, .message = StringFromLiteral(msg)},
     TEST_ERROR_LIST(XX)
 #undef XX
 };
@@ -49,7 +49,7 @@ GetTextTestErrorMessage(enum json_parser_test_error errorCode)
 internalfn void
 StringBuilderAppendBool(string_builder *sb, b8 value)
 {
-  struct string *boolString = value ? &STRING_FROM_ZERO_TERMINATED("true") : &STRING_FROM_ZERO_TERMINATED("false");
+  struct string *boolString = value ? &StringFromLiteral("true") : &StringFromLiteral("false");
   StringBuilderAppendString(sb, boolString);
 }
 
@@ -57,14 +57,14 @@ internalfn void
 StringBuilderAppendJsonTokenType(string_builder *sb, enum json_token_type type)
 {
   struct string table[] = {
-      [JSON_TOKEN_NONE] = STRING_FROM_ZERO_TERMINATED("NONE"),
-      [JSON_TOKEN_NULL] = STRING_FROM_ZERO_TERMINATED("NULL"),
-      [JSON_TOKEN_OBJECT] = STRING_FROM_ZERO_TERMINATED("OBJECT"),
-      [JSON_TOKEN_ARRAY] = STRING_FROM_ZERO_TERMINATED("ARRAY"),
-      [JSON_TOKEN_STRING] = STRING_FROM_ZERO_TERMINATED("STRING"),
-      [JSON_TOKEN_BOOLEAN_FALSE] = STRING_FROM_ZERO_TERMINATED("BOOLEAN FALSE"),
-      [JSON_TOKEN_BOOLEAN_TRUE] = STRING_FROM_ZERO_TERMINATED("BOOLEAN TRUE"),
-      [JSON_TOKEN_NUMBER] = STRING_FROM_ZERO_TERMINATED("NUMBER"),
+      [JSON_TOKEN_NONE] = StringFromLiteral("NONE"),
+      [JSON_TOKEN_NULL] = StringFromLiteral("NULL"),
+      [JSON_TOKEN_OBJECT] = StringFromLiteral("OBJECT"),
+      [JSON_TOKEN_ARRAY] = StringFromLiteral("ARRAY"),
+      [JSON_TOKEN_STRING] = StringFromLiteral("STRING"),
+      [JSON_TOKEN_BOOLEAN_FALSE] = StringFromLiteral("BOOLEAN FALSE"),
+      [JSON_TOKEN_BOOLEAN_TRUE] = StringFromLiteral("BOOLEAN TRUE"),
+      [JSON_TOKEN_NUMBER] = StringFromLiteral("NUMBER"),
   };
   struct string *string = table + (u32)type;
   StringBuilderAppendString(sb, string);
@@ -74,12 +74,12 @@ internalfn void
 StringBuilderAppendJsonParserError(string_builder *sb, enum json_parser_error error)
 {
   struct string table[] = {
-      [JSON_PARSER_ERROR_NONE] = STRING_FROM_ZERO_TERMINATED("no errors"),
-      [JSON_PARSER_ERROR_OUT_OF_TOKENS] = STRING_FROM_ZERO_TERMINATED("out of memory. Token count exceeded."),
-      [JSON_PARSER_ERROR_NO_OPENING_BRACKET] = STRING_FROM_ZERO_TERMINATED("no opening bracket found"),
-      [JSON_PARSER_ERROR_PARTIAL] = STRING_FROM_ZERO_TERMINATED("partial json"),
-      [JSON_PARSER_ERROR_INVALID_BOOLEAN] = STRING_FROM_ZERO_TERMINATED("invalid boolean"),
-      [JSON_PARSER_ERROR_INVALID_CHAR] = STRING_FROM_ZERO_TERMINATED("invalid character"),
+      [JSON_PARSER_ERROR_NONE] = StringFromLiteral("no errors"),
+      [JSON_PARSER_ERROR_OUT_OF_TOKENS] = StringFromLiteral("out of memory. Token count exceeded."),
+      [JSON_PARSER_ERROR_NO_OPENING_BRACKET] = StringFromLiteral("no opening bracket found"),
+      [JSON_PARSER_ERROR_PARTIAL] = StringFromLiteral("partial json"),
+      [JSON_PARSER_ERROR_INVALID_BOOLEAN] = StringFromLiteral("invalid boolean"),
+      [JSON_PARSER_ERROR_INVALID_CHAR] = StringFromLiteral("invalid character"),
   };
   struct string *string = table + (u32)error;
   StringBuilderAppendString(sb, string);
@@ -137,7 +137,7 @@ main(void)
       } expected;
     } testCases[] = {
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\" }"),
+            .json = &StringFromLiteral("{ \"Lorem\": \"ipsum\" }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -149,15 +149,15 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\" }"),
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum"),
+                            StringFromLiteral("{ \"Lorem\": \"ipsum\" }"),
+                            StringFromLiteral("Lorem"),
+                            StringFromLiteral("ipsum"),
                         },
                 },
         },
         {
             // '{ "Lorem": "ipsum \"dolor\"" }'
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
+            .json = &StringFromLiteral("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -169,14 +169,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum \\\"dolor\\\""),
+                            StringFromLiteral("{ \"Lorem\": \"ipsum \\\"dolor\\\"\" }"),
+                            StringFromLiteral("Lorem"),
+                            StringFromLiteral("ipsum \\\"dolor\\\""),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\", \"dolor\": \"sit\" }"),
+            .json = &StringFromLiteral("{ \"Lorem\": \"ipsum\", \"dolor\": \"sit\" }"),
             .expected =
                 {
                     .tokenCount = 5,
@@ -190,16 +190,16 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"Lorem\": \"ipsum\", \"dolor\": \"sit\" }"),
-                            STRING_FROM_ZERO_TERMINATED("Lorem"),
-                            STRING_FROM_ZERO_TERMINATED("ipsum"),
-                            STRING_FROM_ZERO_TERMINATED("dolor"),
-                            STRING_FROM_ZERO_TERMINATED("sit"),
+                            StringFromLiteral("{ \"Lorem\": \"ipsum\", \"dolor\": \"sit\" }"),
+                            StringFromLiteral("Lorem"),
+                            StringFromLiteral("ipsum"),
+                            StringFromLiteral("dolor"),
+                            StringFromLiteral("sit"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"positive number\": 97168748 }"),
+            .json = &StringFromLiteral("{ \"positive number\": 97168748 }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -211,14 +211,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"positive number\": 97168748 }"),
-                            STRING_FROM_ZERO_TERMINATED("positive number"),
-                            STRING_FROM_ZERO_TERMINATED("97168748"),
+                            StringFromLiteral("{ \"positive number\": 97168748 }"),
+                            StringFromLiteral("positive number"),
+                            StringFromLiteral("97168748"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"negative number\": -27845898 }"),
+            .json = &StringFromLiteral("{ \"negative number\": -27845898 }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -230,14 +230,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"negative number\": -27845898 }"),
-                            STRING_FROM_ZERO_TERMINATED("negative number"),
-                            STRING_FROM_ZERO_TERMINATED("-27845898"),
+                            StringFromLiteral("{ \"negative number\": -27845898 }"),
+                            StringFromLiteral("negative number"),
+                            StringFromLiteral("-27845898"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"decimal numeral\": 7415.2305 }"),
+            .json = &StringFromLiteral("{ \"decimal numeral\": 7415.2305 }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -249,14 +249,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"decimal numeral\": 7415.2305 }"),
-                            STRING_FROM_ZERO_TERMINATED("decimal numeral"),
-                            STRING_FROM_ZERO_TERMINATED("7415.2305"),
+                            StringFromLiteral("{ \"decimal numeral\": 7415.2305 }"),
+                            StringFromLiteral("decimal numeral"),
+                            StringFromLiteral("7415.2305"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"a\": false }"),
+            .json = &StringFromLiteral("{ \"a\": false }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -268,14 +268,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": false }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("false"),
+                            StringFromLiteral("{ \"a\": false }"),
+                            StringFromLiteral("a"),
+                            StringFromLiteral("false"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"a\": true }"),
+            .json = &StringFromLiteral("{ \"a\": true }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -287,14 +287,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": true }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("true"),
+                            StringFromLiteral("{ \"a\": true }"),
+                            StringFromLiteral("a"),
+                            StringFromLiteral("true"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ \"a\": null }"),
+            .json = &StringFromLiteral("{ \"a\": null }"),
             .expected =
                 {
                     .tokenCount = 3,
@@ -306,14 +306,14 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"a\": null }"),
-                            STRING_FROM_ZERO_TERMINATED("a"),
-                            STRING_FROM_ZERO_TERMINATED("null"),
+                            StringFromLiteral("{ \"a\": null }"),
+                            StringFromLiteral("a"),
+                            StringFromLiteral("null"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("[ 1, 20, 300 ]"),
+            .json = &StringFromLiteral("[ 1, 20, 300 ]"),
             .expected =
                 {
                     .tokenCount = 4,
@@ -326,15 +326,15 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("[ 1, 20, 300 ]"),
-                            STRING_FROM_ZERO_TERMINATED("1"),
-                            STRING_FROM_ZERO_TERMINATED("20"),
-                            STRING_FROM_ZERO_TERMINATED("300"),
+                            StringFromLiteral("[ 1, 20, 300 ]"),
+                            StringFromLiteral("1"),
+                            StringFromLiteral("20"),
+                            StringFromLiteral("300"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED(
+            .json = &StringFromLiteral(
                 "{ \"title\": \"Test Video\", \"length\": 329021, \"allowedRegions\": [ \"US\", \"CA\", \"DE\" ] }"),
             .expected =
                 {
@@ -357,22 +357,22 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("{ \"title\": \"Test Video\", \"length\": 329021, "
-                                                        "\"allowedRegions\": [ \"US\", \"CA\", \"DE\" ] }"),
-                            STRING_FROM_ZERO_TERMINATED("title"),
-                            STRING_FROM_ZERO_TERMINATED("Test Video"),
-                            STRING_FROM_ZERO_TERMINATED("length"),
-                            STRING_FROM_ZERO_TERMINATED("329021"),
-                            STRING_FROM_ZERO_TERMINATED("allowedRegions"),
-                            STRING_FROM_ZERO_TERMINATED("[ \"US\", \"CA\", \"DE\" ]"),
-                            STRING_FROM_ZERO_TERMINATED("US"),
-                            STRING_FROM_ZERO_TERMINATED("CA"),
-                            STRING_FROM_ZERO_TERMINATED("DE"),
+                            StringFromLiteral("{ \"title\": \"Test Video\", \"length\": 329021, "
+                                              "\"allowedRegions\": [ \"US\", \"CA\", \"DE\" ] }"),
+                            StringFromLiteral("title"),
+                            StringFromLiteral("Test Video"),
+                            StringFromLiteral("length"),
+                            StringFromLiteral("329021"),
+                            StringFromLiteral("allowedRegions"),
+                            StringFromLiteral("[ \"US\", \"CA\", \"DE\" ]"),
+                            StringFromLiteral("US"),
+                            StringFromLiteral("CA"),
+                            StringFromLiteral("DE"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("[ { \"grades\": [10, 20, 30] }, { \"grades\": [100, 90, 80]} ]"),
+            .json = &StringFromLiteral("[ { \"grades\": [10, 20, 30] }, { \"grades\": [100, 90, 80]} ]"),
             .expected =
                 {
                     .tokenCount = 13,
@@ -394,39 +394,38 @@ main(void)
                         },
                     .strings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED(
-                                "[ { \"grades\": [10, 20, 30] }, { \"grades\": [100, 90, 80]} ]"),
-                            STRING_FROM_ZERO_TERMINATED("{ \"grades\": [10, 20, 30] }"),
-                            STRING_FROM_ZERO_TERMINATED("grades"),
-                            STRING_FROM_ZERO_TERMINATED("[10, 20, 30]"),
-                            STRING_FROM_ZERO_TERMINATED("10"),
-                            STRING_FROM_ZERO_TERMINATED("20"),
-                            STRING_FROM_ZERO_TERMINATED("30"),
-                            STRING_FROM_ZERO_TERMINATED("{ \"grades\": [100, 90, 80]}"),
-                            STRING_FROM_ZERO_TERMINATED("grades"),
-                            STRING_FROM_ZERO_TERMINATED("[100, 90, 80]"),
-                            STRING_FROM_ZERO_TERMINATED("100"),
-                            STRING_FROM_ZERO_TERMINATED("90"),
-                            STRING_FROM_ZERO_TERMINATED("80"),
+                            StringFromLiteral("[ { \"grades\": [10, 20, 30] }, { \"grades\": [100, 90, 80]} ]"),
+                            StringFromLiteral("{ \"grades\": [10, 20, 30] }"),
+                            StringFromLiteral("grades"),
+                            StringFromLiteral("[10, 20, 30]"),
+                            StringFromLiteral("10"),
+                            StringFromLiteral("20"),
+                            StringFromLiteral("30"),
+                            StringFromLiteral("{ \"grades\": [100, 90, 80]}"),
+                            StringFromLiteral("grades"),
+                            StringFromLiteral("[100, 90, 80]"),
+                            StringFromLiteral("100"),
+                            StringFromLiteral("90"),
+                            StringFromLiteral("80"),
                         },
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED(""),
+            .json = &StringFromLiteral(""),
             .expected =
                 {
                     .tokenCount = 0,
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("not a json"),
+            .json = &StringFromLiteral("not a json"),
             .expected =
                 {
                     .tokenCount = 0,
                 },
         },
         {
-            .json = &STRING_FROM_ZERO_TERMINATED("{ not a json"),
+            .json = &StringFromLiteral("{ not a json"),
             .expected =
                 {
                     .tokenCount = 0,

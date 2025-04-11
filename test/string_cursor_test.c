@@ -37,7 +37,7 @@ comptime struct string_cursor_test_error_info {
   enum string_cursor_test_error code;
   struct string message;
 } TEXT_TEST_ERRORS[] = {
-#define XX(tag, msg) {.code = tag, .message = STRING_FROM_ZERO_TERMINATED(msg)},
+#define XX(tag, msg) {.code = tag, .message = StringFromLiteral(msg)},
     TEST_ERROR_LIST(XX)
 #undef XX
 };
@@ -56,7 +56,7 @@ GetTextTestErrorMessage(enum string_cursor_test_error errorCode)
 internalfn void
 StringBuilderAppendBool(string_builder *sb, b8 value)
 {
-  struct string *boolString = value ? &STRING_FROM_ZERO_TERMINATED("true") : &STRING_FROM_ZERO_TERMINATED("false");
+  struct string *boolString = value ? &StringFromLiteral("true") : &StringFromLiteral("false");
   StringBuilderAppendString(sb, boolString);
 }
 
@@ -111,46 +111,46 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 1,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED(" Lorem Ipsum"),
+                    .source = &StringFromLiteral(" Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 1,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED(" Lorem Ipsum "),
+                    .source = &StringFromLiteral(" Lorem Ipsum "),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 1,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 0,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .search = &StringFromLiteral("abc"),
             .expected = 0,
         },
     };
@@ -197,46 +197,46 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 1,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED(" Lorem Ipsum"),
+                    .source = &StringFromLiteral(" Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 1,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED(" Lorem Ipsum "),
+                    .source = &StringFromLiteral(" Lorem Ipsum "),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 0,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Lorem Ipsum"),
             .expected = 0,
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .search = &StringFromLiteral("abc"),
             .expected = 0,
         },
     };
@@ -288,53 +288,53 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
+            .search = &StringFromLiteral("Lorem"),
             .expected =
                 {
                     .value = 1,
-                    .remaining = &STRING_FROM_ZERO_TERMINATED(" Ipsum"),
+                    .remaining = &StringFromLiteral(" Ipsum"),
                 },
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Ipsum"),
+            .search = &StringFromLiteral("Ipsum"),
             .expected =
                 {
                     .value = 1,
-                    .remaining = &STRING_FROM_ZERO_TERMINATED(""),
+                    .remaining = &StringFromLiteral(""),
                 },
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
+            .search = &StringFromLiteral("Lorem"),
             .expected =
                 {
                     .value = 0,
-                    .position = STRING_FROM_ZERO_TERMINATED("Lorem Ipsum").length,
+                    .position = StringFromLiteral("Lorem Ipsum").length,
                 },
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 1,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .search = &StringFromLiteral("abc"),
             .expected =
                 {
                     .value = 0,
-                    .position = STRING_FROM_ZERO_TERMINATED("Lorem Ipsum").length,
+                    .position = StringFromLiteral("Lorem Ipsum").length,
                 },
         },
     };
@@ -385,7 +385,7 @@ main(void)
       }
     }
   } else {
-    PrintString(&STRING_FROM_ZERO_TERMINATED(
+    PrintString(&StringFromLiteral(
         "StringCursorAdvanceAfter() tests are skipped because IsStringCursorRemainingEqual() failed\n"));
   }
 
@@ -399,69 +399,69 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
+            .search = &StringFromLiteral("Lorem"),
             .expected = {},
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Ipsum"),
-            .expected = STRING_FROM_ZERO_TERMINATED("Lorem "),
+            .search = &StringFromLiteral("Ipsum"),
+            .expected = StringFromLiteral("Lorem "),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
-            .expected = STRING_FROM_ZERO_TERMINATED("1"),
+            .search = &StringFromLiteral(".2"),
+            .expected = StringFromLiteral("1"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
-            .expected = STRING_FROM_ZERO_TERMINATED("2"),
+            .search = &StringFromLiteral(".3"),
+            .expected = StringFromLiteral("2"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
-            .expected = STRING_FROM_ZERO_TERMINATED("1.2"),
+            .search = &StringFromLiteral(".3"),
+            .expected = StringFromLiteral("1.2"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
-            .expected = STRING_FROM_ZERO_TERMINATED("2"),
+            .search = &StringFromLiteral(".3"),
+            .expected = StringFromLiteral("2"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+                    .source = &StringFromLiteral("abcdefgh"),
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("012345"),
-            .expected = STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+            .search = &StringFromLiteral("012345"),
+            .expected = StringFromLiteral("abcdefgh"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("abcdefgh"),
+                    .source = &StringFromLiteral("abcdefgh"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("012345"),
-            .expected = STRING_FROM_ZERO_TERMINATED("cdefgh"),
+            .search = &StringFromLiteral("012345"),
+            .expected = StringFromLiteral("cdefgh"),
         },
     };
 
@@ -505,74 +505,74 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Lorem"),
-            .expected = STRING_FROM_ZERO_TERMINATED("Lorem"),
+            .search = &StringFromLiteral("Lorem"),
+            .expected = StringFromLiteral("Lorem"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("ab"),
+                    .source = &StringFromLiteral("ab"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("c"),
-            .expected = STRING_FROM_ZERO_TERMINATED("ab"),
+            .search = &StringFromLiteral("c"),
+            .expected = StringFromLiteral("ab"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("Ipsum"),
-            .expected = STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+            .search = &StringFromLiteral("Ipsum"),
+            .expected = StringFromLiteral("Lorem Ipsum"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
-            .expected = STRING_FROM_ZERO_TERMINATED("1.2"),
+            .search = &StringFromLiteral(".2"),
+            .expected = StringFromLiteral("1.2"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".2"),
+            .search = &StringFromLiteral(".2"),
             .expected = {},
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("Lorem Ipsum"),
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED("abc"),
+            .search = &StringFromLiteral("abc"),
             .expected = {},
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 0,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
-            .expected = STRING_FROM_ZERO_TERMINATED("1.2.3"),
+            .search = &StringFromLiteral(".3"),
+            .expected = StringFromLiteral("1.2.3"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("1.2.3"),
+                    .source = &StringFromLiteral("1.2.3"),
                     .position = 2,
                 },
-            .search = &STRING_FROM_ZERO_TERMINATED(".3"),
-            .expected = STRING_FROM_ZERO_TERMINATED("2.3"),
+            .search = &StringFromLiteral(".3"),
+            .expected = StringFromLiteral("2.3"),
         },
     };
 
@@ -617,55 +617,55 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("90876"),
+                    .source = &StringFromLiteral("90876"),
                     .position = 0,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("90876"),
+            .expected = StringFromLiteral("90876"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("5933 abcdef"),
+                    .source = &StringFromLiteral("5933 abcdef"),
                     .position = 0,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("5933"),
+            .expected = StringFromLiteral("5933"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("-10203 fool"),
+                    .source = &StringFromLiteral("-10203 fool"),
                     .position = 0,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("-10203"),
+            .expected = StringFromLiteral("-10203"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("-54.3023 fool"),
+                    .source = &StringFromLiteral("-54.3023 fool"),
                     .position = 0,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("-54.3023"),
+            .expected = StringFromLiteral("-54.3023"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("54.-3023 fool"),
+                    .source = &StringFromLiteral("54.-3023 fool"),
                     .position = 0,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("54."),
+            .expected = StringFromLiteral("54."),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("5933 abcdef"),
+                    .source = &StringFromLiteral("5933 abcdef"),
                     .position = 1,
                 },
-            .expected = STRING_FROM_ZERO_TERMINATED("933"),
+            .expected = StringFromLiteral("933"),
         },
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED("abcdef"),
+                    .source = &StringFromLiteral("abcdef"),
                     .position = 0,
                 },
             .expected = {},
@@ -673,7 +673,7 @@ main(void)
         {
             .cursor =
                 {
-                    .source = &STRING_FROM_ZERO_TERMINATED(""),
+                    .source = &StringFromLiteral(""),
                     .position = 0,
                 },
             .expected = {},

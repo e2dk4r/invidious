@@ -9,10 +9,14 @@ typedef struct string {
   u64 length;
 } string;
 
-#define STRING_FROM_ZERO_TERMINATED(src)                                                                               \
+/*
+ * Only accepts readonly, compile-time C strings.
+ * Do NOT pass char
+ */
+#define StringFromLiteral(source)                                                                                      \
   ((struct string){                                                                                                    \
-      .value = (u8 *)src,                                                                                              \
-      .length = sizeof(src) - 1,                                                                                       \
+      .value = (u8 *)source,                                                                                           \
+      .length = sizeof(source) - 1,                                                                                    \
   })
 
 static inline struct string
@@ -714,5 +718,5 @@ StringSplit(struct string *string, struct string *separator, u64 *splitCount, st
 static inline b8
 StringSplitBySpace(struct string *string, u64 *splitCount, struct string *splits)
 {
-  return StringSplit(string, &STRING_FROM_ZERO_TERMINATED(" "), splitCount, splits);
+  return StringSplit(string, &StringFromLiteral(" "), splitCount, splits);
 }

@@ -67,9 +67,9 @@ main(void)
   }
 
   // hostname
-  struct string hostname = STRING_FROM_ZERO_TERMINATED("inv.stealthy.club");
+  struct string hostname = StringFromLiteral("inv.stealthy.club");
   // port
-  struct string port = STRING_FROM_ZERO_TERMINATED("443");
+  struct string port = StringFromLiteral("443");
 
   // Socket
   context.sockfd = -1;
@@ -141,7 +141,7 @@ main(void)
   // Send an HTTP Request
   StringBuilderAppendStringLiteral(sb, "GET ");
   StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
-  struct string videoId = STRING_FROM_ZERO_TERMINATED("d_oVysaqG_0");
+  struct string videoId = StringFromLiteral("d_oVysaqG_0");
   StringBuilderAppendString(sb, &videoId);
   StringBuilderAppendStringLiteral(sb, " HTTP/1.1");
   StringBuilderAppendStringLiteral(sb, "\r\n");
@@ -289,7 +289,7 @@ main(void)
 
     struct json_token *keyToken = jsonToken;
     struct string key = JsonTokenExtractString(keyToken, &json);
-    if (IsStringEqual(&key, &STRING_FROM_ZERO_TERMINATED("title"))) {
+    if (IsStringEqual(&key, &StringFromLiteral("title"))) {
       jsonTokenIndex++;
       struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
       if (titleToken->type != JSON_TOKEN_STRING) {
@@ -306,7 +306,7 @@ main(void)
       continue;
     }
 
-    if (IsStringEqual(&key, &STRING_FROM_ZERO_TERMINATED("type"))) {
+    if (IsStringEqual(&key, &StringFromLiteral("type"))) {
       jsonTokenIndex++;
       struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
       if (titleToken->type != JSON_TOKEN_STRING) {

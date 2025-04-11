@@ -49,7 +49,7 @@ main(void)
   {
     StringBuilderAppendZeroTerminated(sb, "abc", 3);
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("abc");
+    string *expected = &StringFromLiteral("abc");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDZEROTERMINATED;
       goto end;
@@ -61,7 +61,7 @@ main(void)
   {
     StringBuilderAppendStringLiteral(sb, "ZYXTS");
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("ZYXTS");
+    string *expected = &StringFromLiteral("ZYXTS");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDSTRING;
       goto end;
@@ -73,7 +73,7 @@ main(void)
   {
     StringBuilderAppendU64(sb, 5439);
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("5439");
+    string *expected = &StringFromLiteral("5439");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDU64;
       goto end;
@@ -85,7 +85,7 @@ main(void)
   {
     StringBuilderAppendHex(sb, 252457880);
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("0f0c3398");
+    string *expected = &StringFromLiteral("0f0c3398");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDHEX;
       goto end;
@@ -97,7 +97,7 @@ main(void)
   {
     StringBuilderAppendF32(sb, 4.31f, 2);
 
-    string *expected = &STRING_FROM_ZERO_TERMINATED("4.31");
+    string *expected = &StringFromLiteral("4.31");
     if (!IsStringStartsWith(outBuffer, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDF32;
       goto end;
@@ -118,7 +118,7 @@ main(void)
     StringBuilderAppendF32(sb, 4.31f, 2);
 
     string value = StringBuilderFlush(sb);
-    string *expected = &STRING_FROM_ZERO_TERMINATED("abc ZYXTS 5439 0f0c3398 4.31");
+    string *expected = &StringFromLiteral("abc ZYXTS 5439 0f0c3398 4.31");
     if (!IsStringEqual(&value, expected)) {
       errorCode = STRING_BUILDER_TEST_ERROR_APPENDHEX;
       goto end;

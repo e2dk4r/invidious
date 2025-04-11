@@ -101,7 +101,7 @@ JsonParse(struct json_parser *parser, struct string *json)
     struct json_token *newToken = JsonParserGetToken(parser, writtenTokenCount);
 
     // JSON_TOKEN_OBJECT
-    if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("{"))) {
+    if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("{"))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory
@@ -118,7 +118,7 @@ JsonParse(struct json_parser *parser, struct string *json)
       cursor.position += 1;
     }
 
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("}"))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("}"))) {
       struct json_token *startToken = 0;
       u32 startTokenIndex = writtenTokenCount - 1;
       while (1) {
@@ -144,7 +144,7 @@ JsonParse(struct json_parser *parser, struct string *json)
     }
 
     // JSON_TOKEN_ARRAY
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("["))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("["))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory
@@ -160,7 +160,7 @@ JsonParse(struct json_parser *parser, struct string *json)
       cursor.position += 1;
     }
 
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("]"))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("]"))) {
       struct json_token *startToken = 0;
       u32 startTokenIndex = writtenTokenCount - 1;
       while (1) {
@@ -186,17 +186,17 @@ JsonParse(struct json_parser *parser, struct string *json)
     }
 
     // whitespace
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("\t")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("\r")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("\n")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED(" ")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED(":")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED(","))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("\t")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("\r")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("\n")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral(" ")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral(":")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral(","))) {
       cursor.position += 1;
     }
 
     // JSON_TOKEN_STRING
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("\""))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("\""))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory
@@ -210,12 +210,12 @@ JsonParse(struct json_parser *parser, struct string *json)
       token->start = cursor.position;
 
       struct string_cursor tempCursor = cursor;
-      struct string string = StringCursorConsumeUntil(&tempCursor, &STRING_FROM_ZERO_TERMINATED("\""));
+      struct string string = StringCursorConsumeUntil(&tempCursor, &StringFromLiteral("\""));
       // handle escaped double quotes
-      while (IsStringEndsWith(&string, &STRING_FROM_ZERO_TERMINATED("\\"))) {
+      while (IsStringEndsWith(&string, &StringFromLiteral("\\"))) {
         tempCursor.position += 1; // Advance after double quotes
         string.length += 1;
-        struct string nextPart = StringCursorConsumeUntil(&tempCursor, &STRING_FROM_ZERO_TERMINATED("\""));
+        struct string nextPart = StringCursorConsumeUntil(&tempCursor, &StringFromLiteral("\""));
         if (nextPart.length == 0)
           break;
         string.length += nextPart.length;
@@ -232,7 +232,7 @@ JsonParse(struct json_parser *parser, struct string *json)
     }
 
     // JSON_TOKEN_NULL
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("n"))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("n"))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory
@@ -244,7 +244,7 @@ JsonParse(struct json_parser *parser, struct string *json)
       token->type = JSON_TOKEN_NULL;
       token->start = cursor.position;
 
-      struct string *expected = &STRING_FROM_ZERO_TERMINATED("null");
+      struct string *expected = &StringFromLiteral("null");
       struct string got = StringCursorExtractSubstring(&cursor, expected->length);
       if (!IsStringEqual(&got, expected)) {
         parser->error = JSON_PARSER_ERROR_INVALID_CHAR;
@@ -260,8 +260,8 @@ JsonParse(struct json_parser *parser, struct string *json)
     }
 
     // JSON_TOKEN_BOOLEAN
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("t")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("f"))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("t")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("f"))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory
@@ -270,12 +270,12 @@ JsonParse(struct json_parser *parser, struct string *json)
       }
 
       writtenTokenCount++;
-      token->type = StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("t")) ? JSON_TOKEN_BOOLEAN_TRUE
-                                                                                           : JSON_TOKEN_BOOLEAN_FALSE;
+      token->type = StringCursorPeekStartsWith(&cursor, &StringFromLiteral("t")) ? JSON_TOKEN_BOOLEAN_TRUE
+                                                                                 : JSON_TOKEN_BOOLEAN_FALSE;
       token->start = cursor.position;
 
-      struct string *expected = token->type == JSON_TOKEN_BOOLEAN_FALSE ? &STRING_FROM_ZERO_TERMINATED("false")
-                                                                        : &STRING_FROM_ZERO_TERMINATED("true");
+      struct string *expected =
+          token->type == JSON_TOKEN_BOOLEAN_FALSE ? &StringFromLiteral("false") : &StringFromLiteral("true");
 
       // TODO: OPTIMIZATION: Limit ExtractThrough() to expected length
       struct string got = StringCursorExtractSubstring(&cursor, expected->length);
@@ -298,18 +298,18 @@ JsonParse(struct json_parser *parser, struct string *json)
     }
 
     // JSON_TOKEN_NUMBER
-    else if (StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("-")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED(".")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("0")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("1")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("2")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("3")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("4")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("5")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("6")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("7")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("8")) ||
-             StringCursorPeekStartsWith(&cursor, &STRING_FROM_ZERO_TERMINATED("9"))) {
+    else if (StringCursorPeekStartsWith(&cursor, &StringFromLiteral("-")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral(".")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("0")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("1")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("2")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("3")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("4")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("5")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("6")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("7")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("8")) ||
+             StringCursorPeekStartsWith(&cursor, &StringFromLiteral("9"))) {
       struct json_token *token = newToken;
       if (!token) {
         // out of memory

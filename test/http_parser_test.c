@@ -30,7 +30,7 @@ comptime struct http_parser_test_error_info {
   enum http_parser_test_error code;
   struct string message;
 } TEXT_TEST_ERRORS[] = {
-#define XX(tag, msg) {.code = HTTP_PARSER_TEST_ERROR_##tag, .message = STRING_FROM_ZERO_TERMINATED(msg)},
+#define XX(tag, msg) {.code = HTTP_PARSER_TEST_ERROR_##tag, .message = StringFromLiteral(msg)},
     TEST_ERROR_LIST(XX)
 #undef XX
 };
@@ -50,25 +50,25 @@ internalfn void
 StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error error)
 {
   struct string httpParserErrorTexts[] = {
-      [HTTP_PARSER_ERROR_NONE] = STRING_FROM_ZERO_TERMINATED("None"),
-      [HTTP_PARSER_ERROR_OUT_OF_MEMORY] = STRING_FROM_ZERO_TERMINATED("Out of memory"),
-      [HTTP_PARSER_ERROR_HTTP_VERSION_INVALID] = STRING_FROM_ZERO_TERMINATED("HTTP version is invalid"),
-      [HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1] = STRING_FROM_ZERO_TERMINATED("HTTP version 1.1 is expected"),
-      [HTTP_PARSER_ERROR_STATUS_CODE_INVALID] = STRING_FROM_ZERO_TERMINATED("Status code is invalid"),
+      [HTTP_PARSER_ERROR_NONE] = StringFromLiteral("None"),
+      [HTTP_PARSER_ERROR_OUT_OF_MEMORY] = StringFromLiteral("Out of memory"),
+      [HTTP_PARSER_ERROR_HTTP_VERSION_INVALID] = StringFromLiteral("HTTP version is invalid"),
+      [HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1] = StringFromLiteral("HTTP version 1.1 is expected"),
+      [HTTP_PARSER_ERROR_STATUS_CODE_INVALID] = StringFromLiteral("Status code is invalid"),
       [HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER] =
-          STRING_FROM_ZERO_TERMINATED("Status code must be 3-digit integer"),
+          StringFromLiteral("Status code must be 3-digit integer"),
       [HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999] =
-          STRING_FROM_ZERO_TERMINATED("Status code must be [100, 999]"),
-      [HTTP_PARSER_ERROR_REASON_PHRASE_INVALID] = STRING_FROM_ZERO_TERMINATED("Reason phrase is invalid"),
-      [HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field name is required"),
-      [HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED] = STRING_FROM_ZERO_TERMINATED("Header field value is required"),
+          StringFromLiteral("Status code must be [100, 999]"),
+      [HTTP_PARSER_ERROR_REASON_PHRASE_INVALID] = StringFromLiteral("Reason phrase is invalid"),
+      [HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED] = StringFromLiteral("Header field name is required"),
+      [HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED] = StringFromLiteral("Header field value is required"),
       [HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER] =
-          STRING_FROM_ZERO_TERMINATED("Content length must be positive number"),
-      [HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING] = STRING_FROM_ZERO_TERMINATED("Unsupported transfer encoding"),
-      [HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID] = STRING_FROM_ZERO_TERMINATED("Chunk size is invalid"),
-      [HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED] = STRING_FROM_ZERO_TERMINATED("Chunk data is malformed"),
-      [HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH] = STRING_FROM_ZERO_TERMINATED("Content has invalid length"),
-      [HTTP_PARSER_ERROR_PARTIAL] = STRING_FROM_ZERO_TERMINATED("Partial response"),
+          StringFromLiteral("Content length must be positive number"),
+      [HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING] = StringFromLiteral("Unsupported transfer encoding"),
+      [HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID] = StringFromLiteral("Chunk size is invalid"),
+      [HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED] = StringFromLiteral("Chunk data is malformed"),
+      [HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH] = StringFromLiteral("Content has invalid length"),
+      [HTTP_PARSER_ERROR_PARTIAL] = StringFromLiteral("Partial response"),
   };
   struct string *httpParserErrorText = httpParserErrorTexts + (u32)error;
   StringBuilderAppendString(sb, httpParserErrorText);
@@ -78,41 +78,41 @@ internalfn void
 StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
 {
   struct string table[] = {
-      [HTTP_TOKEN_NONE] = STRING_FROM_ZERO_TERMINATED("None"),
+      [HTTP_TOKEN_NONE] = StringFromLiteral("None"),
 
-      [HTTP_TOKEN_HTTP_VERSION] = STRING_FROM_ZERO_TERMINATED("HTTP version"),
-      [HTTP_TOKEN_STATUS_CODE] = STRING_FROM_ZERO_TERMINATED("Status code"),
-      [HTTP_TOKEN_REASON_PHRASE] = STRING_FROM_ZERO_TERMINATED("Reason Phrase"),
+      [HTTP_TOKEN_HTTP_VERSION] = StringFromLiteral("HTTP version"),
+      [HTTP_TOKEN_STATUS_CODE] = StringFromLiteral("Status code"),
+      [HTTP_TOKEN_REASON_PHRASE] = StringFromLiteral("Reason Phrase"),
 
-      [HTTP_TOKEN_HEADER_CACHE_CONTROL] = STRING_FROM_ZERO_TERMINATED("Cache-Control"),
-      [HTTP_TOKEN_HEADER_CONNECTION] = STRING_FROM_ZERO_TERMINATED("Connection"),
-      [HTTP_TOKEN_HEADER_DATE] = STRING_FROM_ZERO_TERMINATED("Date"),
-      [HTTP_TOKEN_HEADER_PRAGMA] = STRING_FROM_ZERO_TERMINATED("Pragma"),
-      [HTTP_TOKEN_HEADER_TRAILER] = STRING_FROM_ZERO_TERMINATED("Trailer"),
-      [HTTP_TOKEN_HEADER_TRANSFER_ENCODING] = STRING_FROM_ZERO_TERMINATED("Transfer-Encoding"),
-      [HTTP_TOKEN_HEADER_UPGRADE] = STRING_FROM_ZERO_TERMINATED("Upgrade"),
-      [HTTP_TOKEN_HEADER_VIA] = STRING_FROM_ZERO_TERMINATED("Via"),
-      [HTTP_TOKEN_HEADER_WARNING] = STRING_FROM_ZERO_TERMINATED("Warning"),
+      [HTTP_TOKEN_HEADER_CACHE_CONTROL] = StringFromLiteral("Cache-Control"),
+      [HTTP_TOKEN_HEADER_CONNECTION] = StringFromLiteral("Connection"),
+      [HTTP_TOKEN_HEADER_DATE] = StringFromLiteral("Date"),
+      [HTTP_TOKEN_HEADER_PRAGMA] = StringFromLiteral("Pragma"),
+      [HTTP_TOKEN_HEADER_TRAILER] = StringFromLiteral("Trailer"),
+      [HTTP_TOKEN_HEADER_TRANSFER_ENCODING] = StringFromLiteral("Transfer-Encoding"),
+      [HTTP_TOKEN_HEADER_UPGRADE] = StringFromLiteral("Upgrade"),
+      [HTTP_TOKEN_HEADER_VIA] = StringFromLiteral("Via"),
+      [HTTP_TOKEN_HEADER_WARNING] = StringFromLiteral("Warning"),
 
-      [HTTP_TOKEN_HEADER_ACCEPT_RANGES] = STRING_FROM_ZERO_TERMINATED("Accept-Ranges"),
-      [HTTP_TOKEN_HEADER_AGE] = STRING_FROM_ZERO_TERMINATED("Age"),
-      [HTTP_TOKEN_HEADER_ETAG] = STRING_FROM_ZERO_TERMINATED("Etag"),
-      [HTTP_TOKEN_HEADER_LOCATION] = STRING_FROM_ZERO_TERMINATED("Location"),
-      [HTTP_TOKEN_HEADER_PROXY_AUTHENTICATE] = STRING_FROM_ZERO_TERMINATED("Proxy-Authenticate"),
+      [HTTP_TOKEN_HEADER_ACCEPT_RANGES] = StringFromLiteral("Accept-Ranges"),
+      [HTTP_TOKEN_HEADER_AGE] = StringFromLiteral("Age"),
+      [HTTP_TOKEN_HEADER_ETAG] = StringFromLiteral("Etag"),
+      [HTTP_TOKEN_HEADER_LOCATION] = StringFromLiteral("Location"),
+      [HTTP_TOKEN_HEADER_PROXY_AUTHENTICATE] = StringFromLiteral("Proxy-Authenticate"),
 
-      [HTTP_TOKEN_HEADER_ALLOW] = STRING_FROM_ZERO_TERMINATED("Allow"),
-      [HTTP_TOKEN_HEADER_CONTENT_ENCODING] = STRING_FROM_ZERO_TERMINATED("Content-Encoding"),
-      [HTTP_TOKEN_HEADER_CONTENT_LANGUAGE] = STRING_FROM_ZERO_TERMINATED("Content-Language"),
-      [HTTP_TOKEN_HEADER_CONTENT_LENGTH] = STRING_FROM_ZERO_TERMINATED("Content-Length"),
-      [HTTP_TOKEN_HEADER_CONTENT_LOCATION] = STRING_FROM_ZERO_TERMINATED("Content-Location"),
-      [HTTP_TOKEN_HEADER_CONTENT_MD5] = STRING_FROM_ZERO_TERMINATED("Content-Md5"),
-      [HTTP_TOKEN_HEADER_CONTENT_RANGE] = STRING_FROM_ZERO_TERMINATED("Content-Range"),
-      [HTTP_TOKEN_HEADER_CONTENT_TYPE] = STRING_FROM_ZERO_TERMINATED("Content-Type"),
-      [HTTP_TOKEN_HEADER_EXPIRES] = STRING_FROM_ZERO_TERMINATED("Expires"),
-      [HTTP_TOKEN_HEADER_LAST_MODIFIED] = STRING_FROM_ZERO_TERMINATED("Last-Modified"),
+      [HTTP_TOKEN_HEADER_ALLOW] = StringFromLiteral("Allow"),
+      [HTTP_TOKEN_HEADER_CONTENT_ENCODING] = StringFromLiteral("Content-Encoding"),
+      [HTTP_TOKEN_HEADER_CONTENT_LANGUAGE] = StringFromLiteral("Content-Language"),
+      [HTTP_TOKEN_HEADER_CONTENT_LENGTH] = StringFromLiteral("Content-Length"),
+      [HTTP_TOKEN_HEADER_CONTENT_LOCATION] = StringFromLiteral("Content-Location"),
+      [HTTP_TOKEN_HEADER_CONTENT_MD5] = StringFromLiteral("Content-Md5"),
+      [HTTP_TOKEN_HEADER_CONTENT_RANGE] = StringFromLiteral("Content-Range"),
+      [HTTP_TOKEN_HEADER_CONTENT_TYPE] = StringFromLiteral("Content-Type"),
+      [HTTP_TOKEN_HEADER_EXPIRES] = StringFromLiteral("Expires"),
+      [HTTP_TOKEN_HEADER_LAST_MODIFIED] = StringFromLiteral("Last-Modified"),
 
-      [HTTP_TOKEN_CHUNK_SIZE] = STRING_FROM_ZERO_TERMINATED("Chunk size"),
-      [HTTP_TOKEN_CHUNK_DATA] = STRING_FROM_ZERO_TERMINATED("Chunk data"),
+      [HTTP_TOKEN_CHUNK_SIZE] = StringFromLiteral("Chunk size"),
+      [HTTP_TOKEN_CHUNK_DATA] = StringFromLiteral("Chunk data"),
   };
   struct string *string = table + (u32)type;
   StringBuilderAppendString(sb, string);
@@ -121,7 +121,7 @@ StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
 internalfn void
 StringBuilderAppendBool(string_builder *sb, b8 value)
 {
-  struct string *boolString = value ? &STRING_FROM_ZERO_TERMINATED("true") : &STRING_FROM_ZERO_TERMINATED("false");
+  struct string *boolString = value ? &StringFromLiteral("true") : &StringFromLiteral("false");
   StringBuilderAppendString(sb, boolString);
 }
 
@@ -183,63 +183,63 @@ main(void)
     } testCases[] = {
 #define CRLF "\r\n"
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(""),
+            .httpResponse = &StringFromLiteral(""),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.0"),
+            .httpResponse = &StringFromLiteral("HTTP/1.0"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/2.0"),
+            .httpResponse = &StringFromLiteral("HTTP/2.0"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 ABC"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 ABC"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 1"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 10"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 10"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 1000 Custom"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 1000 Custom"),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED("HTTP/1.1 200 " CRLF),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 200 " CRLF),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_REASON_PHRASE_INVALID,
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -259,7 +259,7 @@ main(void)
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -279,7 +279,7 @@ main(void)
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -294,7 +294,7 @@ main(void)
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -321,17 +321,17 @@ main(void)
                     },
                     .httpTokenStrings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
-                            STRING_FROM_ZERO_TERMINATED("200"),
-                            STRING_FROM_ZERO_TERMINATED("application/json"),
-                            STRING_FROM_ZERO_TERMINATED("11"),
-                            STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("11"),
+                            StringFromLiteral("[ 1, 2, 3 ]"),
                         },
-                    .content = &STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                    .content = &StringFromLiteral("[ 1, 2, 3 ]"),
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -364,18 +364,18 @@ main(void)
                     },
                     .httpTokenStrings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
-                            STRING_FROM_ZERO_TERMINATED("200"),
-                            STRING_FROM_ZERO_TERMINATED("application/json"),
-                            STRING_FROM_ZERO_TERMINATED("chunked"),
-                            STRING_FROM_ZERO_TERMINATED("b"),
-                            STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("chunked"),
+                            StringFromLiteral("b"),
+                            StringFromLiteral("[ 1, 2, 3 ]"),
                         },
-                    .content = &STRING_FROM_ZERO_TERMINATED("[ 1, 2, 3 ]"),
+                    .content = &StringFromLiteral("[ 1, 2, 3 ]"),
                 },
         },
         {
-            .httpResponse = &STRING_FROM_ZERO_TERMINATED(
+            .httpResponse = &StringFromLiteral(
                 /*** --- Status-Line -------------------------------- ***/
                 "HTTP/1.1 200 OK" CRLF
                 /*** --- Header Fields ------------------------------ ***/
@@ -412,16 +412,16 @@ main(void)
                         },
                     .httpTokenStrings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
-                            STRING_FROM_ZERO_TERMINATED("200"),
-                            STRING_FROM_ZERO_TERMINATED("application/json"),
-                            STRING_FROM_ZERO_TERMINATED("chunked"),
-                            STRING_FROM_ZERO_TERMINATED("b"),
-                            STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
-                            STRING_FROM_ZERO_TERMINATED("9"),
-                            STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("chunked"),
+                            StringFromLiteral("b"),
+                            StringFromLiteral("[ 4029, 2104"),
+                            StringFromLiteral("9"),
+                            StringFromLiteral("9342, 0 ]"),
                         },
-                    .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
+                    .content = &StringFromLiteral("[ 4029, 21049342, 0 ]"),
                 },
         },
 #undef CRLF
@@ -602,7 +602,7 @@ main(void)
             .httpResponseCount = 2,
             .httpResponses =
                 (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED(
+                    StringFromLiteral(
                         /*** --- Status-Line -------------------------------- ***/
                         "HTTP/1.1 200 OK" CRLF
                         /*** --- Header Fields ------------------------------ ***/
@@ -614,7 +614,7 @@ main(void)
                         /**/ "c" CRLF
                         //// first chunk data
                         /**/ "[ 4029, 2104" CRLF),
-                    STRING_FROM_ZERO_TERMINATED(
+                    StringFromLiteral(
                         //// second chunk size (format: hex digits)
                         /**/ "9" CRLF
                              //// second chunk data
@@ -643,23 +643,23 @@ main(void)
                         },
                     .httpTokenStrings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
-                            STRING_FROM_ZERO_TERMINATED("200"),
-                            STRING_FROM_ZERO_TERMINATED("application/json"),
-                            STRING_FROM_ZERO_TERMINATED("chunked"),
-                            STRING_FROM_ZERO_TERMINATED("b"),
-                            STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
-                            STRING_FROM_ZERO_TERMINATED("9"),
-                            STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("chunked"),
+                            StringFromLiteral("b"),
+                            StringFromLiteral("[ 4029, 2104"),
+                            StringFromLiteral("9"),
+                            StringFromLiteral("9342, 0 ]"),
                         },
-                    .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
+                    .content = &StringFromLiteral("[ 4029, 21049342, 0 ]"),
                 },
         },
         {
             .httpResponseCount = 3,
             .httpResponses =
                 (struct string[]){
-                    STRING_FROM_ZERO_TERMINATED(
+                    StringFromLiteral(
                         /*** --- Status-Line -------------------------------- ***/
                         "HTTP/1.1 200 OK" CRLF
                         /*** --- Header Fields ------------------------------ ***/
@@ -671,9 +671,9 @@ main(void)
                         /**/ "c" CRLF
                         //// first chunk data
                         /**/ "[ 4029"),
-                    STRING_FROM_ZERO_TERMINATED(
+                    StringFromLiteral(
                         /**/ ", 2104"),
-                    STRING_FROM_ZERO_TERMINATED(
+                    StringFromLiteral(
                         /**/ CRLF
                         //// second chunk size (format: hex digits)
                         /**/ "9" CRLF
@@ -704,16 +704,16 @@ main(void)
                         },
                     .httpTokenStrings =
                         (struct string[]){
-                            STRING_FROM_ZERO_TERMINATED("HTTP/1.1"),
-                            STRING_FROM_ZERO_TERMINATED("200"),
-                            STRING_FROM_ZERO_TERMINATED("application/json"),
-                            STRING_FROM_ZERO_TERMINATED("chunked"),
-                            STRING_FROM_ZERO_TERMINATED("b"),
-                            STRING_FROM_ZERO_TERMINATED("[ 4029, 2104"),
-                            STRING_FROM_ZERO_TERMINATED("9"),
-                            STRING_FROM_ZERO_TERMINATED("9342, 0 ]"),
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("chunked"),
+                            StringFromLiteral("b"),
+                            StringFromLiteral("[ 4029, 2104"),
+                            StringFromLiteral("9"),
+                            StringFromLiteral("9342, 0 ]"),
                         },
-                    .content = &STRING_FROM_ZERO_TERMINATED("[ 4029, 21049342, 0 ]"),
+                    .content = &StringFromLiteral("[ 4029, 21049342, 0 ]"),
                 },
         },
 #undef CRLF

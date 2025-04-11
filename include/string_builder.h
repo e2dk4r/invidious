@@ -61,7 +61,7 @@ StringBuilderAppendString(string_builder *stringBuilder, struct string *string)
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
 
-#define StringBuilderAppendStringLiteral(sb, s) StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(s))
+#define StringBuilderAppendStringLiteral(sb, s) StringBuilderAppendString(sb, &StringFromLiteral(s))
 
 static inline void
 StringBuilderAppendU64(string_builder *stringBuilder, u64 value)
@@ -110,7 +110,7 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
 
   while (!IsStringCursorAtEnd(&cursor)) {
     if (cursor.position == 0) {
-      struct string header = STRING_FROM_ZERO_TERMINATED("          0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f\n");
+      struct string header = StringFromLiteral("          0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f\n");
       StringBuilderAppendString(sb, &header);
     }
 

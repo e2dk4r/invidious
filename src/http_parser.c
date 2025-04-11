@@ -165,8 +165,8 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
   enum http_parser_error lastError = parser->error;
   parser->error = HTTP_PARSER_ERROR_NONE;
 
-  struct string *SP = &STRING_FROM_ZERO_TERMINATED(" ");
-  struct string *CRLF = &STRING_FROM_ZERO_TERMINATED("\r\n");
+  struct string *SP = &StringFromLiteral(" ");
+  struct string *CRLF = &StringFromLiteral("\r\n");
 
   u32 writtenTokenCount = 0;
   struct string_cursor cursor = StringCursorFromString(httpResponse);
@@ -196,7 +196,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
     if (httpVersion.length != 8) {
       parser->error = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID;
       goto end;
-    } else if (!IsStringEqual(&httpVersion, &STRING_FROM_ZERO_TERMINATED("HTTP/1.1"))) {
+    } else if (!IsStringEqual(&httpVersion, &StringFromLiteral("HTTP/1.1"))) {
       parser->error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1;
       goto end;
     } else {
@@ -290,7 +290,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
        *                    and consisting of either *TEXT or combinations
        *                    of token, separators, and quoted-string>
        */
-      struct string *colon = &STRING_FROM_ZERO_TERMINATED(":");
+      struct string *colon = &StringFromLiteral(":");
       struct string fieldName = StringCursorExtractUntil(&cursor, colon);
       if (fieldName.length == 0) {
         parser->error = HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED;
@@ -298,53 +298,53 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       }
 
       enum http_token_type tokenType = HTTP_TOKEN_NONE;
-      if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("cache-control")))
+      if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("cache-control")))
         tokenType = HTTP_TOKEN_HEADER_CACHE_CONTROL;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("connection")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("connection")))
         tokenType = HTTP_TOKEN_HEADER_CONNECTION;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("date")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("date")))
         tokenType = HTTP_TOKEN_HEADER_DATE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("pragma")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("pragma")))
         tokenType = HTTP_TOKEN_HEADER_PRAGMA;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("trailer")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("trailer")))
         tokenType = HTTP_TOKEN_HEADER_TRAILER;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("transfer-encoding")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("transfer-encoding")))
         tokenType = HTTP_TOKEN_HEADER_TRANSFER_ENCODING;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("upgrade")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("upgrade")))
         tokenType = HTTP_TOKEN_HEADER_UPGRADE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("via")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("via")))
         tokenType = HTTP_TOKEN_HEADER_VIA;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("warning")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("warning")))
         tokenType = HTTP_TOKEN_HEADER_WARNING;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("accept-ranges")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("accept-ranges")))
         tokenType = HTTP_TOKEN_HEADER_ACCEPT_RANGES;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("age")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("age")))
         tokenType = HTTP_TOKEN_HEADER_AGE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("etag")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("etag")))
         tokenType = HTTP_TOKEN_HEADER_ETAG;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("location")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("location")))
         tokenType = HTTP_TOKEN_HEADER_LOCATION;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("proxy-authenticate")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("proxy-authenticate")))
         tokenType = HTTP_TOKEN_HEADER_PROXY_AUTHENTICATE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("allow")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("allow")))
         tokenType = HTTP_TOKEN_HEADER_ALLOW;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-encoding")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-encoding")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_ENCODING;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-language")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-language")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_LANGUAGE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-length")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-length")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_LENGTH;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-location")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-location")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_LOCATION;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-md5")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-md5")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_MD5;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-range")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-range")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_RANGE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("content-type")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("content-type")))
         tokenType = HTTP_TOKEN_HEADER_CONTENT_TYPE;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("expires")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("expires")))
         tokenType = HTTP_TOKEN_HEADER_EXPIRES;
-      else if (IsStringEqualIgnoreCase(&fieldName, &STRING_FROM_ZERO_TERMINATED("last-modified")))
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("last-modified")))
         tokenType = HTTP_TOKEN_HEADER_LAST_MODIFIED;
 
       if (tokenType == HTTP_TOKEN_NONE) {
@@ -364,7 +364,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       }
 
       if (tokenType == HTTP_TOKEN_HEADER_TRANSFER_ENCODING &&
-          !IsStringEqual(&trimmedFieldValue, &STRING_FROM_ZERO_TERMINATED("chunked"))) {
+          !IsStringEqual(&trimmedFieldValue, &StringFromLiteral("chunked"))) {
         parser->error = HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING;
         goto end;
       }
@@ -464,7 +464,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       if (!partialToken) {
         // Extract chunk size
         struct string chunkSizeText = StringCursorExtractUntil(&cursor, CRLF);
-        struct string *lastChunkSizeText = &STRING_FROM_ZERO_TERMINATED("0");
+        struct string *lastChunkSizeText = &StringFromLiteral("0");
         if (IsStringEqual(&chunkSizeText, lastChunkSizeText) &&
             // and CRLF must be found
             chunkSizeText.length != StringCursorRemainingLength(&cursor)) {
