@@ -129,26 +129,26 @@ main(void)
   int mbedtlsError;
   mbedtlsError = mbedtls_ssl_handshake(&context.ssl);
   if (mbedtlsError) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("TLS handshake failed.\n"));
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("  Mbed TLS error: "));
+    StringBuilderAppendStringLiteral(sb, "TLS handshake failed.\n");
+    StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
     StringBuilderAppendMbedtlsError(sb, mbedtlsError);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
     return 1;
   }
 
   // Send an HTTP Request
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("GET "));
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("/api/v1/videos/"));
+  StringBuilderAppendStringLiteral(sb, "GET ");
+  StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
   struct string videoId = STRING_FROM_ZERO_TERMINATED("d_oVysaqG_0");
   StringBuilderAppendString(sb, &videoId);
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" HTTP/1.1"));
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("host: "));
+  StringBuilderAppendStringLiteral(sb, " HTTP/1.1");
+  StringBuilderAppendStringLiteral(sb, "\r\n");
+  StringBuilderAppendStringLiteral(sb, "host: ");
   StringBuilderAppendString(sb, &hostname);
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\r\n"));
-  StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\r\n"));
+  StringBuilderAppendStringLiteral(sb, "\r\n");
+  StringBuilderAppendStringLiteral(sb, "\r\n");
   struct string request = StringBuilderFlush(sb);
 
   {
@@ -162,9 +162,9 @@ main(void)
           continue;
         }
 
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Mbed TLS write error: "));
+        StringBuilderAppendStringLiteral(sb, "Mbed TLS write error: ");
         StringBuilderAppendMbedtlsError(sb, mbedtlsError);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string message = StringBuilderFlush(sb);
         PrintString(&message);
         return 1;
@@ -195,10 +195,10 @@ main(void)
         if (mbedtlsError == MBEDTLS_ERR_SSL_WANT_READ || mbedtlsError == MBEDTLS_ERR_SSL_WANT_WRITE)
           continue;
 
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("TLS read failed.\n"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("  Mbed TLS error: "));
+        StringBuilderAppendStringLiteral(sb, "TLS read failed.\n");
+        StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
         StringBuilderAppendMbedtlsError(sb, mbedtlsError);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string message = StringBuilderFlush(sb);
         PrintString(&message);
         return 1;
@@ -213,12 +213,12 @@ main(void)
       if (ok)
         break;
       if (httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Http parser failed."));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n     error: "));
+        StringBuilderAppendStringLiteral(sb, "Http parser failed.");
+        StringBuilderAppendStringLiteral(sb, "\n     error: ");
         StringBuilderAppendU64(sb, (u64)httpParser->error);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  position: "));
+        StringBuilderAppendStringLiteral(sb, "\n  position: ");
         StringBuilderAppendU64(sb, httpParser->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string message = StringBuilderFlush(sb);
         PrintString(&message);
         return 1;
@@ -231,9 +231,9 @@ main(void)
   }
 
   if (response.length == responseBufferMax) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Warning: response is truncated to "));
+    StringBuilderAppendStringLiteral(sb, "Warning: response is truncated to ");
     StringBuilderAppendU64(sb, response.length);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
     return 1;
@@ -264,10 +264,10 @@ main(void)
   u32 breakHere = 1;
   struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 4096);
   if (!JsonParse(jsonParser, &json)) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Json parser failed."));
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  error: "));
+    StringBuilderAppendStringLiteral(sb, "Json parser failed.");
+    StringBuilderAppendStringLiteral(sb, "\n  error: ");
     StringBuilderAppendU64(sb, (u64)jsonParser->error);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
     return 1;
@@ -275,8 +275,8 @@ main(void)
 
   struct json_token *firstJsonToken = jsonParser->tokens + 0;
   if (firstJsonToken->type != JSON_TOKEN_OBJECT) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Got unexpected json from server"));
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+    StringBuilderAppendStringLiteral(sb, "Got unexpected json from server");
+    StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
     return 1;
@@ -298,9 +298,9 @@ main(void)
       }
       struct string title = JsonTokenExtractString(titleToken, &json);
 
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Title: "));
+      StringBuilderAppendStringLiteral(sb, "Title: ");
       StringBuilderAppendString(sb, &title);
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+      StringBuilderAppendStringLiteral(sb, "\n");
       struct string message = StringBuilderFlush(sb);
       PrintString(&message);
       continue;
@@ -315,9 +315,9 @@ main(void)
       }
       struct string type = JsonTokenExtractString(titleToken, &json);
 
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("Type: "));
+      StringBuilderAppendStringLiteral(sb, "Type: ");
       StringBuilderAppendString(sb, &type);
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+      StringBuilderAppendStringLiteral(sb, "\n");
       struct string message = StringBuilderFlush(sb);
       PrintString(&message);
       continue;

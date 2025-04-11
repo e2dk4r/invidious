@@ -81,11 +81,11 @@ internalfn void
 StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
 {
   if (string->value == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    StringBuilderAppendStringLiteral(sb, "(NULL)");
   else if (string->value != 0 && string->length == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    StringBuilderAppendStringLiteral(sb, "(EMPTY)");
   else if (string->length == 1 && string->value[0] == ' ')
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(SPACE)"));
+    StringBuilderAppendStringLiteral(sb, "(SPACE)");
   else
     StringBuilderAppendString(sb, string);
 }
@@ -149,11 +149,11 @@ main(void)
         errorCode = TEXT_TEST_ERROR_STRING_FROM_ZERO_TERMINATED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendU64(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendU64(sb, got.length);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -256,15 +256,15 @@ main(void)
             expected ? TEXT_TEST_ERROR_IS_STRING_EQUAL_MUST_BE_TRUE : TEXT_TEST_ERROR_IS_STRING_EQUAL_MUST_BE_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  left:     "));
+        StringBuilderAppendStringLiteral(sb, "\n  left:     ");
         StringBuilderAppendPrintableString(sb, left);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  right:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  right:    ");
         StringBuilderAppendPrintableString(sb, right);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -371,15 +371,15 @@ main(void)
                              : TEXT_TEST_ERROR_IS_STRING_EQUAL_IGNORE_CASE_MUST_BE_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  left:     "));
+        StringBuilderAppendStringLiteral(sb, "\n  left:     ");
         StringBuilderAppendPrintableString(sb, left);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  right:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  right:    ");
         StringBuilderAppendPrintableString(sb, right);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -432,15 +432,15 @@ main(void)
                              : TEXT_TEST_ERROR_IS_STRING_CONTAINS_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  string:   ");
         StringBuilderAppendString(sb, string);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  search:   ");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -494,15 +494,15 @@ main(void)
                              : TEXT_TEST_ERROR_IS_STRING_STARTS_WITH_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  string:   ");
         StringBuilderAppendString(sb, string);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  search:   ");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -556,15 +556,15 @@ main(void)
                              : TEXT_TEST_ERROR_IS_STRING_ENDS_WITH_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  string:   ");
         StringBuilderAppendString(sb, string);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  search:   ");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -623,13 +623,13 @@ main(void)
                                          : TEXT_TEST_ERROR_STRIP_WHITESPACE_EXPECTED_NULL;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  string:   ");
         StringBuilderAppendString(sb, string);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendPrintableString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendPrintableString(sb, &got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -730,23 +730,23 @@ main(void)
             expected ? TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_TRUE : TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  string:   "));
+        StringBuilderAppendStringLiteral(sb, "\n  string:   ");
         StringBuilderAppendPrintableString(sb, string);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
         if (expected) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" duration: "));
+          StringBuilderAppendStringLiteral(sb, " duration: ");
           StringBuilderAppendU64(sb, expectedDurationInNanoseconds);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("ns"));
+          StringBuilderAppendStringLiteral(sb, "ns");
         }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, value);
         if (expected) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" duration: "));
+          StringBuilderAppendStringLiteral(sb, " duration: ");
           StringBuilderAppendU64(sb, duration.ns);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("ns"));
+          StringBuilderAppendStringLiteral(sb, "ns");
         }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -891,19 +891,19 @@ main(void)
         errorCode = expectedResult ? TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_TRUE : TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
         StringBuilderAppendPrintableString(sb, input);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         if (result != expectedResult)
           StringBuilderAppendBool(sb, expectedResult);
         else
           StringBuilderAppendU64(sb, expectedValue);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         if (result != expectedResult)
           StringBuilderAppendBool(sb, result);
         else
           StringBuilderAppendU64(sb, value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -953,13 +953,13 @@ main(void)
         errorCode = TEXT_TEST_ERROR_FORMATU64_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
         StringBuilderAppendU64(sb, input);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendString(sb, &value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -1061,15 +1061,15 @@ main(void)
         errorCode = TEXT_TEST_ERROR_FORMATF32SLOW_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input (with 12 fraction count): "));
+        StringBuilderAppendStringLiteral(sb, "\n  input (with 12 fraction count): ");
         StringBuilderAppendF32(sb, input, 12);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                   fractionCount: "));
+        StringBuilderAppendStringLiteral(sb, "\n                   fractionCount: ");
         StringBuilderAppendU64(sb, fractionCount);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendString(sb, &value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -1115,13 +1115,13 @@ main(void)
         errorCode = TEXT_TEST_ERROR_FORMATHEX_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
         StringBuilderAppendU64(sb, input);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendString(sb, &value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -1171,13 +1171,13 @@ main(void)
         errorCode = TEXT_TEST_ERROR_PATHGETDIRECTORY;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
         StringBuilderAppendPrintableString(sb, input);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendPrintableString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendPrintableString(sb, &value);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -1297,20 +1297,20 @@ main(void)
         errorCode = expected ? TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_TRUE : TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:    "));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
         StringBuilderAppendString(sb, input);
         if (value != expected) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected: ");
           StringBuilderAppendBool(sb, expected);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+          StringBuilderAppendStringLiteral(sb, "\n       got: ");
           StringBuilderAppendBool(sb, value);
         } else {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected split count: "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected split count: ");
           StringBuilderAppendU64(sb, expectedSplitCount);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                   got: "));
+          StringBuilderAppendStringLiteral(sb, "\n                   got: ");
           StringBuilderAppendU64(sb, splitCount);
         }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       } else {
@@ -1326,18 +1326,18 @@ main(void)
                 expected ? TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_TRUE : TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_FALSE;
 
             StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  input:       "));
+            StringBuilderAppendStringLiteral(sb, "\n  input:       ");
             StringBuilderAppendString(sb, input);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  split count: "));
+            StringBuilderAppendStringLiteral(sb, "\n  split count: ");
             StringBuilderAppendU64(sb, splitCount);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  index "));
+            StringBuilderAppendStringLiteral(sb, "\n  index ");
             StringBuilderAppendU64(sb, splitIndex);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" is wrong"));
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n     expected: "));
+            StringBuilderAppendStringLiteral(sb, " is wrong");
+            StringBuilderAppendStringLiteral(sb, "\n     expected: ");
             StringBuilderAppendPrintableString(sb, expectedSplit);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n          got: "));
+            StringBuilderAppendStringLiteral(sb, "\n          got: ");
             StringBuilderAppendPrintableString(sb, split);
-            StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+            StringBuilderAppendStringLiteral(sb, "\n");
             struct string errorMessage = StringBuilderFlush(sb);
             PrintString(&errorMessage);
           }

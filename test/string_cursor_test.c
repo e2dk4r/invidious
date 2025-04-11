@@ -64,11 +64,11 @@ internalfn void
 StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
 {
   if (string->value == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    StringBuilderAppendStringLiteral(sb, "(NULL)");
   else if (string->value != 0 && string->length == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    StringBuilderAppendStringLiteral(sb, "(EMPTY)");
   else if (string->length == 1 && string->value[0] == ' ')
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(SPACE)"));
+    StringBuilderAppendStringLiteral(sb, "(SPACE)");
   else
     StringBuilderAppendString(sb, string);
 }
@@ -168,18 +168,18 @@ main(void)
                              : STRING_CURSOR_TEST_ERROR_STARTS_WITH_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  search: '");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -255,18 +255,18 @@ main(void)
                              : STRING_CURSOR_TEST_ERROR_IS_REMAINING_EQUAL_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  search: '");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendBool(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendBool(sb, got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -355,31 +355,31 @@ main(void)
         errorCode = STRING_CURSOR_TEST_ERROR_ADVANCE_AFTER_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  search: '");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
+        StringBuilderAppendStringLiteral(sb, "'");
         if (got != expectedToFindString) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected to find search: "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected to find search: ");
           StringBuilderAppendBool(sb, expectedToFindString);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+          StringBuilderAppendStringLiteral(sb, "\n       got: ");
           StringBuilderAppendBool(sb, got);
         } else if (!expectedToFindString && cursor->position != expectedPosition) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected cursor position: "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected cursor position: ");
           StringBuilderAppendU64(sb, expectedPosition);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+          StringBuilderAppendStringLiteral(sb, "\n       got: ");
           StringBuilderAppendU64(sb, cursor->position);
         } else {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n   expected: "));
+          StringBuilderAppendStringLiteral(sb, "\n   expected: ");
           StringBuilderAppendString(sb, expectedRemaining);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n        got: "));
+          StringBuilderAppendStringLiteral(sb, "\n        got: ");
           struct string remaining = StringCursorExtractSubstring(cursor, cursor->source->length - cursor->position);
           StringBuilderAppendString(sb, &remaining);
         }
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -477,18 +477,18 @@ main(void)
         errorCode = STRING_CURSOR_TEST_ERROR_CONSUME_UNTIL_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  search: '");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendPrintableString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendPrintableString(sb, &got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -588,20 +588,20 @@ main(void)
         errorCode = STRING_CURSOR_TEST_ERROR_EXTRACT_THROUGH_EXPECTED;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  search: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  search: '");
         StringBuilderAppendString(sb, search);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: '"));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n  expected: '");
         StringBuilderAppendPrintableString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: '"));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n       got: '");
         StringBuilderAppendPrintableString(sb, &got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("'"));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }
@@ -692,15 +692,15 @@ main(void)
                                      : STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  cursor: '"));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
         StringBuilderAppendString(sb, cursor->source);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("' at position: "));
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
         StringBuilderAppendU64(sb, cursor->position);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
         StringBuilderAppendPrintableString(sb, expected);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n       got: "));
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendPrintableString(sb, &got);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
       }

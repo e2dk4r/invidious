@@ -61,6 +61,8 @@ StringBuilderAppendString(string_builder *stringBuilder, struct string *string)
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
 
+#define StringBuilderAppendStringLiteral(sb, s) StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(s))
+
 static inline void
 StringBuilderAppendU64(string_builder *stringBuilder, u64 value)
 {
@@ -117,11 +119,11 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
     for (u32 offsetTextPrefixIndex = 0; offsetTextPrefixIndex < offsetBufferString.length - offsetText.length;
          offsetTextPrefixIndex++) {
       // offset length must be 8, so fill prefix with zeros
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("0"));
+      StringBuilderAppendStringLiteral(sb, "0");
     }
     StringBuilderAppendString(sb, &offsetText);
 
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    StringBuilderAppendStringLiteral(sb, " ");
 
     // hex
     u64 width = 16;
@@ -132,37 +134,37 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
       debug_assert(hexText.length == 2);
       StringBuilderAppendString(sb, &hexText);
 
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+      StringBuilderAppendStringLiteral(sb, " ");
 
       if (substringIndex + 1 == 8)
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+        StringBuilderAppendStringLiteral(sb, " ");
     }
 
     for (u64 index = 0; index < width - substring.length; index++) {
       // align ascii to right
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("   "));
+      StringBuilderAppendStringLiteral(sb, "   ");
       if (index + substring.length + 1 == 8)
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+        StringBuilderAppendStringLiteral(sb, " ");
     }
 
     // ascii input
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+    StringBuilderAppendStringLiteral(sb, "|");
     for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
       u8 character = *(substring.value + substringIndex);
       b8 disallowed[255] = {
           [0x00 ... 0x1a] = 1,
       };
       if (disallowed[character]) {
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("."));
+        StringBuilderAppendStringLiteral(sb, ".");
       } else {
         struct string characterString = StringFromBuffer(&character, 1);
         StringBuilderAppendString(sb, &characterString);
       }
     }
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
+    StringBuilderAppendStringLiteral(sb, "|");
 
     if (!IsStringCursorAtEnd(&cursor))
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+      StringBuilderAppendStringLiteral(sb, "\n");
   }
 }
 

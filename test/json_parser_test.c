@@ -89,11 +89,11 @@ internalfn void
 StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
 {
   if (string->value == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    StringBuilderAppendStringLiteral(sb, "(NULL)");
   else if (string->value != 0 && string->length == 0)
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    StringBuilderAppendStringLiteral(sb, "(EMPTY)");
   else if (string->length == 1 && string->value[0] == ' ')
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(SPACE)"));
+    StringBuilderAppendStringLiteral(sb, "(SPACE)");
   else
     StringBuilderAppendString(sb, string);
 }
@@ -102,10 +102,10 @@ internalfn void
 StringBuilderAppendPrintableHexDump(string_builder *sb, struct string *string)
 {
   if (string->value == 0) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
+    StringBuilderAppendStringLiteral(sb, "(NULL)");
     return;
   } else if (string->value != 0 && string->length == 0) {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
+    StringBuilderAppendStringLiteral(sb, "(EMPTY)");
     return;
   }
   StringBuilderAppendHexDump(sb, string);
@@ -454,13 +454,13 @@ main(void)
 
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          StringBuilderAppendStringLiteral(sb, "\n");
           StringBuilderAppendPrintableHexDump(sb, json);
         }
 
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected to return: "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected to return: ");
         StringBuilderAppendBool(sb, expectedValue);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n             but got: "));
+        StringBuilderAppendStringLiteral(sb, "\n             but got: ");
         StringBuilderAppendBool(sb, gotValue);
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
@@ -476,15 +476,15 @@ main(void)
 
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          StringBuilderAppendStringLiteral(sb, "\n");
           StringBuilderAppendPrintableHexDump(sb, json);
         }
 
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected "));
+        StringBuilderAppendStringLiteral(sb, "\n  expected ");
         StringBuilderAppendU64(sb, expectedTokenCount);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" token(s) to be parsed but got "));
+        StringBuilderAppendStringLiteral(sb, " token(s) to be parsed but got ");
         StringBuilderAppendU64(sb, gotTokenCount);
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
 
@@ -511,58 +511,57 @@ main(void)
 
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+          StringBuilderAppendStringLiteral(sb, "\n");
           StringBuilderAppendPrintableHexDump(sb, json);
         }
 
         if (token->type != expectedToken->type) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token type to be "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected token type to be ");
           StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendStringLiteral(sb, " but got ");
           StringBuilderAppendJsonTokenType(sb, token->type);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendStringLiteral(sb, " at index ");
           StringBuilderAppendU64(sb, tokenIndex);
         }
 
         else if (token->start != expectedToken->start) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected token with type ");
           StringBuilderAppendJsonTokenType(sb, expectedToken->type);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" start to be "));
+          StringBuilderAppendStringLiteral(sb, " start to be ");
           StringBuilderAppendU64(sb, expectedToken->start);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendStringLiteral(sb, " but got ");
           StringBuilderAppendU64(sb, token->start);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendStringLiteral(sb, " at index ");
           StringBuilderAppendU64(sb, tokenIndex);
         }
 
         else if (token->end != expectedToken->end) {
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected token with type "));
+          StringBuilderAppendStringLiteral(sb, "\n  expected token with type ");
           StringBuilderAppendJsonTokenType(sb, token->type);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" end to be "));
+          StringBuilderAppendStringLiteral(sb, " end to be ");
           StringBuilderAppendU64(sb, expectedToken->end);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" but got "));
+          StringBuilderAppendStringLiteral(sb, " but got ");
           StringBuilderAppendU64(sb, token->end);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" at index "));
+          StringBuilderAppendStringLiteral(sb, " at index ");
           StringBuilderAppendU64(sb, tokenIndex);
         }
 
         else {
           struct string *expectedString = testCase->expected.strings + tokenIndex;
           struct string string = JsonTokenExtractString(token, json);
-          StringBuilderAppendString(sb,
-                                    &STRING_FROM_ZERO_TERMINATED("\n  expected string extracted from token to be:"));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
+          StringBuilderAppendStringLiteral(sb, "\n  expected string extracted from token to be:");
+          StringBuilderAppendStringLiteral(sb, "\n    \"");
           StringBuilderAppendString(sb, expectedString);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  but got:"));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n    \""));
+          StringBuilderAppendStringLiteral(sb, "\"");
+          StringBuilderAppendStringLiteral(sb, "\n  but got:");
+          StringBuilderAppendStringLiteral(sb, "\n    \"");
           StringBuilderAppendString(sb, &string);
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\""));
-          StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  at index: "));
+          StringBuilderAppendStringLiteral(sb, "\"");
+          StringBuilderAppendStringLiteral(sb, "\n  at index: ");
           StringBuilderAppendU64(sb, tokenIndex);
         }
 
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
+        StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
 

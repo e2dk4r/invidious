@@ -59,7 +59,7 @@ main(void)
 
   // StringBuilderAppendString(string_builder *stringBuilder, struct string *string)
   {
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("ZYXTS"));
+    StringBuilderAppendStringLiteral(sb, "ZYXTS");
 
     string *expected = &STRING_FROM_ZERO_TERMINATED("ZYXTS");
     if (!IsStringStartsWith(outBuffer, expected)) {
@@ -108,13 +108,13 @@ main(void)
   // StringBuilderFlush(string_builder *stringBuilder)
   {
     StringBuilderAppendZeroTerminated(sb, "abc", 3);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("ZYXTS"));
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    StringBuilderAppendStringLiteral(sb, " ");
+    StringBuilderAppendStringLiteral(sb, "ZYXTS");
+    StringBuilderAppendStringLiteral(sb, " ");
     StringBuilderAppendU64(sb, 5439);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    StringBuilderAppendStringLiteral(sb, " ");
     StringBuilderAppendHex(sb, 252457880);
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
+    StringBuilderAppendStringLiteral(sb, " ");
     StringBuilderAppendF32(sb, 4.31f, 2);
 
     string value = StringBuilderFlush(sb);
