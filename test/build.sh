@@ -44,6 +44,14 @@ lib="$LIB_M"
 "$cc" $cflags $ldflags $inc -o "$output" $src $lib
 RunTest "$output" "TEST text failed."
 
+### string_cursor
+inc="-I$ProjectRoot/include"
+src="$pwd/string_cursor_test.c"
+output="$outputDir/$(BasenameWithoutExtension "$src")"
+lib=""
+"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+RunTest "$output" "TEST string cursor failed."
+
 ### string_builder
 inc="-I$ProjectRoot/include"
 src="$pwd/string_builder_test.c"
@@ -67,14 +75,6 @@ output="$outputDir/$(BasenameWithoutExtension "$src")"
 lib="$LIB_M"
 "$cc" $cflags $ldflags $inc -o "$output" $src $lib
 RunTest "$output" "TEST teju failed."
-
-### string_cursor
-inc="-I$ProjectRoot/include"
-src="$pwd/string_cursor_test.c"
-output="$outputDir/$(BasenameWithoutExtension "$src")"
-lib=""
-"$cc" $cflags $ldflags $inc -o "$output" $src $lib
-RunTest "$output" "TEST string cursor failed."
 
 ### json_parser
 inc="-I$ProjectRoot/include -I$ProjectRoot/src"

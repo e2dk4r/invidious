@@ -139,7 +139,7 @@ StringBuilderAppendPrintableString(string_builder *sb, struct string *string)
 }
 
 internalfn void
-StringBuilderAppendHexDump(string_builder *sb, struct string *string)
+StringBuilderAppendPrintableHexDump(string_builder *sb, struct string *string)
 {
   if (string->value == 0) {
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(NULL)"));
@@ -148,71 +148,7 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
     StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("(EMPTY)"));
     return;
   }
-
-  struct string_cursor cursor = StringCursorFromString(string);
-  u8 offsetBuffer[8];
-  struct string offsetBufferString = StringFromBuffer(offsetBuffer, ARRAY_COUNT(offsetBuffer));
-  u8 hexBuffer[2];
-  struct string hexBufferString = StringFromBuffer(hexBuffer, ARRAY_COUNT(hexBuffer));
-
-  while (!IsStringCursorAtEnd(&cursor)) {
-    if (cursor.position == 0) {
-      struct string header = STRING_FROM_ZERO_TERMINATED("          0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f\n");
-      StringBuilderAppendString(sb, &header);
-    }
-
-    // offset
-    struct string offsetText = FormatHex(&offsetBufferString, cursor.position);
-    for (u32 offsetTextPrefixIndex = 0; offsetTextPrefixIndex < offsetBufferString.length - offsetText.length;
-         offsetTextPrefixIndex++) {
-      // offset length must be 8, so fill prefix with zeros
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("0"));
-    }
-    StringBuilderAppendString(sb, &offsetText);
-
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
-
-    // hex
-    u64 width = 16;
-    struct string substring = StringCursorConsumeSubstring(&cursor, width);
-    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
-      u8 character = *(substring.value + substringIndex);
-      struct string hexText = FormatHex(&hexBufferString, (u64)character);
-      debug_assert(hexText.length == 2);
-      StringBuilderAppendString(sb, &hexText);
-
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
-
-      if (substringIndex + 1 == 8)
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
-    }
-
-    for (u64 index = 0; index < width - substring.length; index++) {
-      // align ascii to right
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("   "));
-      if (index + substring.length + 1 == 8)
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED(" "));
-    }
-
-    // ascii input
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
-    for (u64 substringIndex = 0; substringIndex < substring.length; substringIndex++) {
-      u8 character = *(substring.value + substringIndex);
-      b8 disallowed[255] = {
-          [0x00 ... 0x1a] = 1,
-      };
-      if (disallowed[character])
-        StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("."));
-      else {
-        struct string characterString = StringFromBuffer(&character, 1);
-        StringBuilderAppendString(sb, &characterString);
-      }
-    }
-    StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("|"));
-
-    if (!IsStringCursorAtEnd(&cursor))
-      StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
-  }
+  StringBuilderAppendHexDump(sb, string);
 }
 
 int
@@ -511,7 +447,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendPrintableHexDump(sb, httpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
@@ -539,7 +475,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendPrintableHexDump(sb, httpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected http token count: "));
@@ -569,7 +505,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendPrintableHexDump(sb, httpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
 
@@ -583,7 +519,7 @@ main(void)
         StringBuilderAppendU64(sb, httpTokenIndex);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string *expectedString = testCase->expected.httpTokenStrings + httpTokenIndex;
-        StringBuilderAppendHexDump(sb, expectedString);
+        StringBuilderAppendPrintableHexDump(sb, expectedString);
 
         debug_assert(expectedString->length == expectedHttpToken->end - expectedHttpToken->start &&
                      "Check your test cases, you got this one wrong");
@@ -596,7 +532,7 @@ main(void)
         StringBuilderAppendU64(sb, httpToken->end);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string gotString = HttpTokenExtractString(httpToken, httpResponse);
-        StringBuilderAppendHexDump(sb, &gotString);
+        StringBuilderAppendPrintableHexDump(sb, &gotString);
 
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
@@ -628,13 +564,13 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, httpResponse);
+          StringBuilderAppendPrintableHexDump(sb, httpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected content to be:\n"));
-        StringBuilderAppendHexDump(sb, expectedContent);
+        StringBuilderAppendPrintableHexDump(sb, expectedContent);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                 but got:\n"));
-        StringBuilderAppendHexDump(sb, &content);
+        StringBuilderAppendPrintableHexDump(sb, &content);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
@@ -822,7 +758,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, &combinedHttpResponse);
+          StringBuilderAppendPrintableHexDump(sb, &combinedHttpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected error: "));
@@ -850,7 +786,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, &combinedHttpResponse);
+          StringBuilderAppendPrintableHexDump(sb, &combinedHttpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected http token count: "));
@@ -880,7 +816,7 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, &combinedHttpResponse);
+          StringBuilderAppendPrintableHexDump(sb, &combinedHttpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
 
@@ -894,7 +830,7 @@ main(void)
         StringBuilderAppendU64(sb, httpTokenIndex);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string *expectedString = testCase->expected.httpTokenStrings + httpTokenIndex;
-        StringBuilderAppendHexDump(sb, expectedString);
+        StringBuilderAppendPrintableHexDump(sb, expectedString);
 
         debug_assert(expectedString->length == expectedHttpToken->end - expectedHttpToken->start &&
                      "Check your test cases, you got this one wrong");
@@ -907,7 +843,7 @@ main(void)
         StringBuilderAppendU64(sb, httpToken->end);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string gotString = HttpTokenExtractString(httpToken, &combinedHttpResponse);
-        StringBuilderAppendHexDump(sb, &gotString);
+        StringBuilderAppendPrintableHexDump(sb, &gotString);
 
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
@@ -939,13 +875,13 @@ main(void)
         if (failedTestCount == 0) {
           StringBuilderAppendString(sb, GetHttpParserTestErrorMessage(errorCode));
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\nHTTP response:\n```\n"));
-          StringBuilderAppendHexDump(sb, &combinedHttpResponse);
+          StringBuilderAppendPrintableHexDump(sb, &combinedHttpResponse);
           StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n```"));
         }
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n  expected content to be:\n"));
-        StringBuilderAppendHexDump(sb, expectedContent);
+        StringBuilderAppendPrintableHexDump(sb, expectedContent);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n                 but got:\n"));
-        StringBuilderAppendHexDump(sb, &content);
+        StringBuilderAppendPrintableHexDump(sb, &content);
         StringBuilderAppendString(sb, &STRING_FROM_ZERO_TERMINATED("\n"));
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
