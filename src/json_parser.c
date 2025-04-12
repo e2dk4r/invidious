@@ -277,7 +277,6 @@ JsonParse(struct json_parser *parser, struct string *json)
       struct string *expected =
           token->type == JSON_TOKEN_BOOLEAN_FALSE ? &StringFromLiteral("false") : &StringFromLiteral("true");
 
-      // TODO: OPTIMIZATION: Limit ExtractThrough() to expected length
       struct string got = StringCursorExtractSubstring(&cursor, expected->length);
 
       if (!IsStringEqual(&got, expected)) {
