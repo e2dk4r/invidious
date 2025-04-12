@@ -5,6 +5,11 @@
  * HTTP response. As you fill the buffer you continuously call HttpParse() and
  * see the HTTP tokens. If any error happened you can early out.
  *
+ * Notes:
+ *   - Http headers starts at index 3
+ *   - If parser has chunked encoded body and content length body, ignore
+ *   content length
+ *
  * @code
  *   buf = allocate(length)
  *   position = 0;
