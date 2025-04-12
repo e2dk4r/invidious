@@ -1288,6 +1288,14 @@ main(void)
                     .value = 0,
                 },
         },
+        {
+            .input = StringFromLiteral("Lorem"),
+            .separator = StringFromLiteral("no separator"),
+            .expected =
+                {
+                    .value = 0,
+                },
+        },
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
