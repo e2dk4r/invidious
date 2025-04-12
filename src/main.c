@@ -239,26 +239,44 @@ main(void)
     return 1;
   }
 
+  /* Q: Can we feed json parser http chunked encoded json?
+   * A: Yes. But data must not be cut at any token into split.
+   *    Below is ok:
+   *      First data:  { "a": 1,
+   *      Second data: 2, 3 }
+   *    But below is not:
+   *      First data:  { "versi
+   *      Second data: on": "1.0" }
+   */
   // extract data from http response
-  u64 jsonBufferLength = 0;
-  for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount - 1; httpTokenIndex++) {
-    struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
-    if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
-      continue;
+  struct string json;
+  if (httpParser->state & HTTP_PARSER_STATE_HAS_CHUNKED_ENCODED_BODY) {
+    u64 jsonBufferLength = 0;
+    for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
+      struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+      if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+        continue;
 
-    struct string data = HttpTokenExtractString(httpToken, &response);
-    jsonBufferLength += data.length;
-  }
+      struct string data = HttpTokenExtractString(httpToken, &response);
+      jsonBufferLength += data.length;
+    }
 
-  string_builder *jsonBuilder = MakeStringBuilder(&stackMemory, jsonBufferLength, 0);
-  for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount - 1; httpTokenIndex++) {
-    struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
-    if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
-      continue;
-    struct string data = HttpTokenExtractString(httpToken, &response);
-    StringBuilderAppendString(jsonBuilder, &data);
+    string_builder *jsonBuilder = MakeStringBuilder(&stackMemory, jsonBufferLength, 0);
+    for (u32 httpTokenIndex = 3; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
+      struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
+      if (httpToken->type != HTTP_TOKEN_CHUNK_DATA)
+        continue;
+      struct string data = HttpTokenExtractString(httpToken, &response);
+      StringBuilderAppendString(jsonBuilder, &data);
+    }
+    json = StringBuilderFlush(jsonBuilder);
+  } else if (httpParser->state & HTTP_PARSER_STATE_HAS_CONTENT_LENGTH_BODY) {
+    struct http_token *lastHttpToken = httpParser->tokens + httpParser->tokenCount - 1;
+    json = HttpTokenExtractString(lastHttpToken, &response);
+  } else {
+    PrintString(&StringFromLiteral("No body found\n"));
+    return 1;
   }
-  struct string json = StringBuilderFlush(jsonBuilder);
 
   // parse data as json
   u32 breakHere = 1;
