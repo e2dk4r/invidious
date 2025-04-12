@@ -937,7 +937,7 @@ main(void)
             .input = 18446744073709551615UL,
             .expected = StringFromLiteral("18446744073709551615"),
         },
-        // TODO: fail cases for FormatU64()
+        // no fail cases
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
@@ -1044,7 +1044,7 @@ main(void)
             .fractionCount = 2,
             .expected = StringFromLiteral("-2.56"),
         },
-        // TODO: fail cases for FormatF32Slow()
+        // no fail cases
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
@@ -1099,7 +1099,7 @@ main(void)
             .input = 0x00f2aa499b9028eaUL,
             .expected = StringFromLiteral("00f2aa499b9028ea"),
         },
-        // TODO: fail cases for FormatHex()
+        // no fail cases
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
