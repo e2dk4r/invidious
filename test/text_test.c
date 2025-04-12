@@ -1184,14 +1184,14 @@ main(void)
     }
   }
 
-  // b8 StringSplit(struct string *string, struct string *seperator, u64 *splitCount, struct string *splits)
+  // b8 StringSplit(struct string *string, struct string *separator, u64 *splitCount, struct string *splits)
   // Dependencies: IsStringEqual()
   if (IsStringEqualOK) {
     __cleanup_memory_temp__ memory_temp tempMemory = MemoryTempBegin(&stackMemory);
 
     struct test_case {
       struct string input;
-      struct string seperator;
+      struct string separator;
       struct {
         b8 value;
         u64 splitCount;
@@ -1200,7 +1200,7 @@ main(void)
     } testCases[] = {
         {
             .input = StringFromLiteral("1 2 3"),
-            .seperator = StringFromLiteral(" "),
+            .separator = StringFromLiteral(" "),
             .expected =
                 {
                     .value = 1,
@@ -1215,7 +1215,7 @@ main(void)
         },
         {
             .input = StringFromLiteral("1xx2xx3"),
-            .seperator = StringFromLiteral("xx"),
+            .separator = StringFromLiteral("xx"),
             .expected =
                 {
                     .value = 1,
@@ -1230,7 +1230,7 @@ main(void)
         },
         {
             .input = StringFromLiteral("1xoxo2xo3"),
-            .seperator = StringFromLiteral("xo"),
+            .separator = StringFromLiteral("xo"),
             .expected =
                 {
                     .value = 1,
@@ -1246,7 +1246,7 @@ main(void)
         },
         {
             .input = StringFromLiteral("1xo2xo3xo"),
-            .seperator = StringFromLiteral("xo"),
+            .separator = StringFromLiteral("xo"),
             .expected =
                 {
                     .value = 1,
@@ -1262,7 +1262,7 @@ main(void)
         },
         {
             .input = StringFromLiteral("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
-            .seperator = StringFromLiteral(" "),
+            .separator = StringFromLiteral(" "),
             .expected =
                 {
                     .value = 1,
@@ -1280,29 +1280,40 @@ main(void)
                         },
                 },
         },
-        // TODO: fail cases for StringSplit();
+        {
+            .input = StringFromLiteral("Lorem ipsum dolor sit amet, consectetur adipiscing elit"),
+            .separator = StringFromLiteral("no separator"),
+            .expected =
+                {
+                    .value = 0,
+                },
+        },
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
       struct test_case *testCase = testCases + testCaseIndex;
 
       struct string *input = &testCase->input;
-      struct string *seperator = &testCase->seperator;
+      struct string *separator = &testCase->separator;
 
       u64 expectedSplitCount = testCase->expected.splitCount;
       b8 expected = testCase->expected.value;
       u64 splitCount;
-      b8 value = StringSplit(input, seperator, &splitCount, 0);
-      if (value != expected || splitCount != expectedSplitCount) {
+      b8 value = StringSplit(input, separator, &splitCount, 0);
+      if (value != expected || (expected && splitCount != expectedSplitCount)) {
         errorCode = expected ? TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_TRUE : TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_FALSE;
 
         StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
+        StringBuilderAppendStringLiteral(sb, "\n      input: '");
         StringBuilderAppendString(sb, input);
+        StringBuilderAppendStringLiteral(sb, "'");
+        StringBuilderAppendStringLiteral(sb, "\n  separator: '");
+        StringBuilderAppendString(sb, separator);
+        StringBuilderAppendStringLiteral(sb, "'");
         if (value != expected) {
-          StringBuilderAppendStringLiteral(sb, "\n  expected: ");
+          StringBuilderAppendStringLiteral(sb, "\n   expected: ");
           StringBuilderAppendBool(sb, expected);
-          StringBuilderAppendStringLiteral(sb, "\n       got: ");
+          StringBuilderAppendStringLiteral(sb, "\n        got: ");
           StringBuilderAppendBool(sb, value);
         } else {
           StringBuilderAppendStringLiteral(sb, "\n  expected split count: ");
@@ -1313,10 +1324,12 @@ main(void)
         StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
-      } else {
+      } else if (expected) {
         struct string *expectedSplits = testCase->expected.splits;
         struct string *splits = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*splits) * splitCount);
-        StringSplit(input, seperator, &splitCount, splits);
+        StringSplit(input, separator, &splitCount, splits);
+
+        u32 splitFailCount = 0;
 
         for (u32 splitIndex = 0; splitIndex < splitCount; splitIndex++) {
           struct string *expectedSplit = expectedSplits + splitIndex;
@@ -1325,11 +1338,18 @@ main(void)
             errorCode =
                 expected ? TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_TRUE : TEXT_TEST_ERROR_STRINGSPLIT_EXPECTED_FALSE;
 
-            StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
-            StringBuilderAppendStringLiteral(sb, "\n  input:       ");
-            StringBuilderAppendString(sb, input);
-            StringBuilderAppendStringLiteral(sb, "\n  split count: ");
-            StringBuilderAppendU64(sb, splitCount);
+            if (splitFailCount == 0) {
+              StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+              StringBuilderAppendStringLiteral(sb, "\n        input: '");
+              StringBuilderAppendString(sb, input);
+              StringBuilderAppendStringLiteral(sb, "'");
+              StringBuilderAppendStringLiteral(sb, "\n    separator: '");
+              StringBuilderAppendString(sb, separator);
+              StringBuilderAppendStringLiteral(sb, "'");
+              StringBuilderAppendStringLiteral(sb, "\n  split count: ");
+              StringBuilderAppendU64(sb, splitCount);
+            }
+
             StringBuilderAppendStringLiteral(sb, "\n  index ");
             StringBuilderAppendU64(sb, splitIndex);
             StringBuilderAppendStringLiteral(sb, " is wrong");
@@ -1340,6 +1360,8 @@ main(void)
             StringBuilderAppendStringLiteral(sb, "\n");
             struct string errorMessage = StringBuilderFlush(sb);
             PrintString(&errorMessage);
+
+            splitFailCount++;
           }
         }
       }

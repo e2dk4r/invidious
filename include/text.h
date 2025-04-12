@@ -648,9 +648,8 @@ PathGetDirectory(struct string *path)
  * @return 1 when string can be split into parts, 0 otherwise.
  * @code
  *   u64 splitCount;
- *   string *separator = ;
- *   if (!StringSplit(string, separator, &splitCount, 0));
- *   if (splitCount == 1)
+ *   string *separator = &StringFromLiteral(" ");
+ *   if (!StringSplit(string, separator, &splitCount, 0))
  *     return;
  *   string *splits = MemoryArenaPush(arena, sizeof(*splits) * splitCount);
  *   StringSplit(string, separator, &splitCount, splits);
@@ -670,8 +669,12 @@ StringSplit(struct string *string, struct string *separator, u64 *splitCount, st
     for (u64 index = 0; index < string->length;) {
       struct string substring = StringFromBuffer(string->value + index, separator->length);
 
-      if (separator->length > string->length - index)
+      if (separator->length > string->length - index) {
+        if (count == 0)
+          // no separator found
+          return 0;
         break;
+      }
 
       if (IsStringEqual(&substring, separator)) {
         count++;
