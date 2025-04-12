@@ -649,6 +649,14 @@ main(void)
         {
             .cursor =
                 {
+                    .source = &StringFromLiteral("86774.60272.062713"),
+                    .position = 0,
+                },
+            .expected = StringFromLiteral("86774.60272"),
+        },
+        {
+            .cursor =
+                {
                     .source = &StringFromLiteral("54.-3023 fool"),
                     .position = 0,
                 },
