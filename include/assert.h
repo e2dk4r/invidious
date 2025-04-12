@@ -1,7 +1,5 @@
 #pragma once
 
-#if IS_BUILD_DEBUG
-
 #if defined(__has_builtin) && __has_builtin(__builtin_debugtrap)
 #define __ASSERT__ __builtin_debugtrap()
 #elif defined(_MSC_VER)
@@ -9,6 +7,8 @@
 #else
 #define __ASSERT__ __asm__("int3; nop")
 #endif
+
+#if IS_BUILD_DEBUG
 
 #define debug_assert(expression)                                                                                       \
   if (!(expression)) {                                                                                                 \
