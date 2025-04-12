@@ -45,11 +45,11 @@ int
 main(void)
 {
   struct invidious_context context = {};
-  memory_arena stackMemory = {};
   u8 stackBuf[1 * MEGABYTES];
-
-  stackMemory.block = stackBuf;
-  stackMemory.total = ARRAY_COUNT(stackBuf);
+  memory_arena stackMemory = {
+      .block = stackBuf,
+      .total = ARRAY_COUNT(stackBuf),
+  };
 
   string_builder *sb = MemoryArenaPushUnaligned(&stackMemory, sizeof(*sb));
   {
