@@ -7,12 +7,14 @@ on:
       - '.clang-format'
       - '.gitignore'
       - 'README.md'
+      - 'doc/'
   pull_request:
     branches: [ "master" ]
     paths-ignore:
       - '.clang-format'
       - '.gitignore'
       - 'README.md'
+      - 'doc/'
 
 jobs:
   build:
