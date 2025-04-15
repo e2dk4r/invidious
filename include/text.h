@@ -245,21 +245,14 @@ ParseDuration(struct string *string, struct duration *duration)
   // | hr       | hour        |
   // | day      | day         |
   // | wk       | week        |
-
-#define UNIT_STRING(variableName, zeroTerminatedString)                                                                \
-  static struct string variableName = {                                                                                \
-      .value = (u8 *)zeroTerminatedString,                                                                             \
-      .length = sizeof(zeroTerminatedString) - 1,                                                                      \
-  }
-  UNIT_STRING(nanosecondUnitString, "ns");
-  UNIT_STRING(microsecondUnitString, "us");
-  UNIT_STRING(millisocondUnitString, "ms");
-  UNIT_STRING(secondUnitString, "sec");
-  UNIT_STRING(minuteUnitString, "min");
-  UNIT_STRING(hourUnitString, "hr");
-  UNIT_STRING(dayUnitString, "day");
-  UNIT_STRING(weekUnitString, "wk");
-#undef UNIT_STRING
+  struct string nanosecondUnitString = StringFromLiteral("ns");
+  struct string microsecondUnitString = StringFromLiteral("us");
+  struct string millisocondUnitString = StringFromLiteral("ms");
+  struct string secondUnitString = StringFromLiteral("sec");
+  struct string minuteUnitString = StringFromLiteral("min");
+  struct string hourUnitString = StringFromLiteral("hr");
+  struct string dayUnitString = StringFromLiteral("day");
+  struct string weekUnitString = StringFromLiteral("wk");
 
   b8 isUnitExistsInString =
       IsStringContains(string, &secondUnitString) || IsStringContains(string, &minuteUnitString) ||
