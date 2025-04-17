@@ -4,10 +4,12 @@
 #include "math.h"
 #include "type.h"
 
-typedef struct string {
+struct string {
   u8 *value;
   u64 length;
-} string;
+};
+
+typedef struct string string;
 
 /*
  * Only accepts readonly, compile-time C strings.
