@@ -54,9 +54,9 @@ StringFromZeroTerminated(u8 *src, u64 max)
 static inline struct string *
 MakeString(memory_arena *arena, u64 length)
 {
-  struct string *result = MemoryArenaPushUnaligned(arena, sizeof(*result));
+  struct string *result = MemoryArenaPush(arena, sizeof(*result));
   result->length = length;
-  result->value = MemoryArenaPushUnaligned(arena, result->length);
+  result->value = MemoryArenaPush(arena, result->length);
   return result;
 }
 

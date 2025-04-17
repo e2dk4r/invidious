@@ -63,8 +63,8 @@ JsonParser(struct json_token *tokens, u32 tokenCount)
 internalfn struct json_parser *
 MakeJsonParser(memory_arena *arena, u32 tokenCount)
 {
-  struct json_token *tokens = MemoryArenaPushUnaligned(arena, sizeof(*tokens) * tokenCount);
-  struct json_parser *parser = MemoryArenaPushUnaligned(arena, sizeof(*parser));
+  struct json_token *tokens = MemoryArenaPush(arena, sizeof(*tokens) * tokenCount);
+  struct json_parser *parser = MemoryArenaPush(arena, sizeof(*parser));
   JsonParserInit(parser, tokens, tokenCount);
   return parser;
 }

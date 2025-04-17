@@ -3,13 +3,10 @@
 // TODO: Show error pretty error message when a test fails
 enum memory_test_error {
   MEMORY_TEST_ERROR_NONE = 0,
+  MEMORY_TEST_ERROR_MEM_PUSH_ALIGNED_EXPECTED_VALID_ADDRESS_1,
+  MEMORY_TEST_ERROR_MEM_PUSH_ALIGNED_EXPECTED_VALID_ADDRESS_2,
   MEMORY_TEST_ERROR_MEM_PUSH_EXPECTED_VALID_ADDRESS_1,
   MEMORY_TEST_ERROR_MEM_PUSH_EXPECTED_VALID_ADDRESS_2,
-  MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_1,
-  MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_2,
-  MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_3,
-  MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_NULL,
-  MEMORY_TEST_ERROR_MEM_CHUNK_POP_EXPECTED_SAME_ADDRESS,
 
   // src: https://mesonbuild.com/Unit-tests.html#skipped-tests-and-hard-errors
   // For the default exitcode testing protocol, the GNU standard approach in
@@ -29,110 +26,53 @@ int
 main(void)
 {
   enum memory_test_error errorCode = MEMORY_TEST_ERROR_NONE;
-  memory_arena memory;
+
+  // setup
+  u64 KILOBYTES = 1 << 10;
+  u8 stackBuffer[8 * KILOBYTES];
+  memory_arena stackMemory = {
+      .block = stackBuffer,
+      .total = ARRAY_COUNT(stackBuffer),
+  };
+  bzero(stackMemory.block, stackMemory.total);
   memory_temp tempMemory;
 
-  {
-    u64 KILOBYTES = 1 << 10;
-    u64 total = 1 * KILOBYTES;
-    memory = (memory_arena){.block = alloca(total), .total = total};
-    if (memory.block == 0) {
-      errorCode = MESON_TEST_FAILED_TO_SET_UP;
-      goto end;
-    }
-    bzero(memory.block, memory.total);
-  }
-
   // MemPush(memory_block *mem, u64 size)
-  tempMemory = MemoryTempBegin(&memory);
+  tempMemory = MemoryTempBegin(&stackMemory);
   {
     void *expected;
     void *value;
 
-    expected = memory.block;
-    value = MemoryArenaPush(&memory, 16, 4);
+    expected = stackMemory.block + 0;
+    value = MemoryArenaPushAligned(&stackMemory, 10, 4);
+    if (value != expected) {
+      errorCode = MEMORY_TEST_ERROR_MEM_PUSH_ALIGNED_EXPECTED_VALID_ADDRESS_1;
+      goto end;
+    }
+
+    expected = stackMemory.block + 12;
+    value = MemoryArenaPushAligned(&stackMemory, 10, 4);
+    if (value != expected) {
+      errorCode = MEMORY_TEST_ERROR_MEM_PUSH_ALIGNED_EXPECTED_VALID_ADDRESS_2;
+      goto end;
+    }
+
+    expected = stackMemory.block + 22;
+    value = MemoryArenaPush(&stackMemory, 8);
     if (value != expected) {
       errorCode = MEMORY_TEST_ERROR_MEM_PUSH_EXPECTED_VALID_ADDRESS_1;
       goto end;
     }
 
-    expected = memory.block + 16;
-    value = MemoryArenaPush(&memory, 16, 4);
+    expected = stackMemory.block + 30;
+    value = MemoryArenaPush(&stackMemory, 10);
     if (value != expected) {
       errorCode = MEMORY_TEST_ERROR_MEM_PUSH_EXPECTED_VALID_ADDRESS_2;
       goto end;
     }
   }
-  MemoryTempEnd(&tempMemory);
 
-  // MemoryChunkPush(memory_chunk *chunk)
-  tempMemory = MemoryTempBegin(&memory);
-  {
-    memory_chunk *chunk = MemoryArenaPushChunk(&memory, 16, 3);
-    void *expected;
-    void *value;
-    u64 index;
-    u8 flag;
-
-    /*
-     * | memory_chunk                               |
-     * |--------------------------------------------|
-     * | flags -> max*sizeof(u8) | data -> max*size |
-     */
-    void *flagStartAddress = (u8 *)chunk->block;
-    void *dataStartAddress = (u8 *)chunk->block + (sizeof(u8) * chunk->max);
-
-    index = 0;
-    expected = dataStartAddress + (16 * index);
-    value = MemoryChunkPush(chunk);
-    flag = *((u8 *)flagStartAddress + index);
-    if (value != expected || flag != 1) {
-      errorCode = MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_1;
-      goto end;
-    }
-
-    index = 1;
-    expected = dataStartAddress + (16 * index);
-    value = MemoryChunkPush(chunk);
-    flag = *((u8 *)flagStartAddress + index);
-    if (value != expected || flag != 1) {
-      errorCode = MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_2;
-      goto end;
-    }
-
-    index = 2;
-    expected = dataStartAddress + (16 * index);
-    value = MemoryChunkPush(chunk);
-    flag = *((u8 *)flagStartAddress + index);
-    if (value != expected || flag != 1) {
-      errorCode = MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_VALID_ADDRESS_3;
-      goto end;
-    }
-
-    expected = 0;
-    value = MemoryChunkPush(chunk);
-    if (value != expected) {
-      errorCode = MEMORY_TEST_ERROR_MEM_CHUNK_PUSH_EXPECTED_NULL;
-      goto end;
-    }
-  }
-  MemoryTempEnd(&tempMemory);
-
-  // MemoryChunkPop(memory_chunk *chunk, void *block)
-  tempMemory = MemoryTempBegin(&memory);
-  {
-    memory_chunk *chunk = MemoryArenaPushChunk(&memory, 16, 3);
-    void *expected;
-    void *value;
-
-    expected = MemoryChunkPush(chunk);
-    MemoryChunkPop(chunk, expected);
-    value = MemoryChunkPush(chunk);
-    if (value != expected) {
-      errorCode = MEMORY_TEST_ERROR_MEM_CHUNK_POP_EXPECTED_SAME_ADDRESS;
-      goto end;
-    }
-  }
+  bzero(stackMemory.block, stackMemory.used);
   MemoryTempEnd(&tempMemory);
 
 end:

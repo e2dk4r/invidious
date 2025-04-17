@@ -86,20 +86,7 @@ main(void)
       .total = ARRAY_COUNT(stackBuffer),
   };
 
-  string_builder *sb = MemoryArenaPushUnaligned(&stackMemory, sizeof(*sb));
-  {
-    string *outBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*outBuffer));
-    outBuffer->length = 1024;
-    outBuffer->value = MemoryArenaPushUnaligned(&stackMemory, outBuffer->length);
-    sb->outBuffer = outBuffer;
-
-    string *stringBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*stringBuffer));
-    stringBuffer->length = 32;
-    stringBuffer->value = MemoryArenaPushUnaligned(&stackMemory, stringBuffer->length);
-    sb->stringBuffer = stringBuffer;
-
-    sb->length = 0;
-  }
+  string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
 
   // b8 IsStringCursorStartsWith(struct string_cursor *cursor, struct string *search)
   {

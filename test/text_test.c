@@ -105,20 +105,7 @@ main(void)
       .total = ARRAY_COUNT(stackBuffer),
   };
 
-  string_builder *sb = MemoryArenaPushUnaligned(&stackMemory, sizeof(*sb));
-  {
-    string *outBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*outBuffer));
-    outBuffer->length = 1024;
-    outBuffer->value = MemoryArenaPushUnaligned(&stackMemory, outBuffer->length);
-    sb->outBuffer = outBuffer;
-
-    string *stringBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*stringBuffer));
-    stringBuffer->length = 32;
-    stringBuffer->value = MemoryArenaPushUnaligned(&stackMemory, stringBuffer->length);
-    sb->stringBuffer = stringBuffer;
-
-    sb->length = 0;
-  }
+  string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
 
   // struct string StringFromZeroTerminated(u8 *src, u64 max)
   {
@@ -1470,7 +1457,7 @@ main(void)
         PrintString(&errorMessage);
       } else if (expected) {
         struct string *expectedSplits = testCase->expected.splits;
-        struct string *splits = MemoryArenaPushUnaligned(tempMemory.arena, sizeof(*splits) * splitCount);
+        struct string *splits = MemoryArenaPush(tempMemory.arena, sizeof(*splits) * splitCount);
         StringSplit(input, separator, &splitCount, splits);
 
         u32 splitFailCount = 0;

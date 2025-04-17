@@ -151,8 +151,8 @@ HttpParser(struct http_token *tokens, u32 tokenCount)
 internalfn struct http_parser *
 MakeHttpParser(memory_arena *arena, u32 tokenCount)
 {
-  struct http_token *tokens = MemoryArenaPushUnaligned(arena, sizeof(*tokens) * tokenCount);
-  struct http_parser *parser = MemoryArenaPushUnaligned(arena, sizeof(*parser));
+  struct http_token *tokens = MemoryArenaPush(arena, sizeof(*tokens) * tokenCount);
+  struct http_parser *parser = MemoryArenaPush(arena, sizeof(*parser));
   HttpParserInit(parser, tokens, tokenCount);
   return parser;
 }

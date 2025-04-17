@@ -51,20 +51,7 @@ main(void)
       .total = ARRAY_COUNT(stackBuf),
   };
 
-  string_builder *sb = MemoryArenaPushUnaligned(&stackMemory, sizeof(*sb));
-  {
-    string *outBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*outBuffer));
-    outBuffer->length = 1024;
-    outBuffer->value = MemoryArenaPushUnaligned(&stackMemory, outBuffer->length);
-    sb->outBuffer = outBuffer;
-
-    string *stringBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*stringBuffer));
-    stringBuffer->length = 32;
-    stringBuffer->value = MemoryArenaPushUnaligned(&stackMemory, stringBuffer->length);
-    sb->stringBuffer = stringBuffer;
-
-    sb->length = 0;
-  }
+  string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
 
   // hostname
   struct string hostname = StringFromLiteral("inv.stealthy.club");
@@ -179,7 +166,7 @@ main(void)
 
   // Recieve a HTTP Response and parse it
   u64 responseBufferMax = 256 * KILOBYTES;
-  u8 *responseBuffer = MemoryArenaPushUnaligned(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
+  u8 *responseBuffer = MemoryArenaPush(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
   struct string response;
   struct http_parser *httpParser = MakeHttpParser(&stackMemory, 16);
   {
