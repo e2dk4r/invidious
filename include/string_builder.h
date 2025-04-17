@@ -76,6 +76,50 @@ StringBuilderAppendU64(string_builder *stringBuilder, u64 value)
 }
 
 static inline void
+StringBuilderAppendU8(string_builder *stringBuilder, u8 value)
+{
+  StringBuilderAppendU64(stringBuilder, (u64)value);
+}
+
+static inline void
+StringBuilderAppendU16(string_builder *stringBuilder, u16 value)
+{
+  StringBuilderAppendU64(stringBuilder, (u64)value);
+}
+
+static inline void
+StringBuilderAppendU32(string_builder *stringBuilder, u32 value)
+{
+  StringBuilderAppendU64(stringBuilder, (u64)value);
+}
+
+static inline void
+StringBuilderAppendS64(string_builder *stringBuilder, s64 value)
+{
+  if (value < 0)
+    StringBuilderAppendStringLiteral(stringBuilder, "-");
+  StringBuilderAppendU64(stringBuilder, (u64)value);
+}
+
+static inline void
+StringBuilderAppendS8(string_builder *stringBuilder, s8 value)
+{
+  StringBuilderAppendS64(stringBuilder, (s64)value);
+}
+
+static inline void
+StringBuilderAppendS16(string_builder *stringBuilder, s16 value)
+{
+  StringBuilderAppendS64(stringBuilder, (s64)value);
+}
+
+static inline void
+StringBuilderAppendS32(string_builder *stringBuilder, s32 value)
+{
+  StringBuilderAppendS64(stringBuilder, (s64)value);
+}
+
+static inline void
 StringBuilderAppendHex(string_builder *stringBuilder, u64 value)
 {
   struct string *outBuffer = stringBuilder->outBuffer;
