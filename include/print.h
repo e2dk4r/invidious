@@ -13,7 +13,7 @@ static inline void
 PrintString(struct string *string)
 {
   HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-  WriteFile(outputHandle, string->value, (u32)string->length, 0, 0);
+  (void)WriteFile(outputHandle, string->value, (u32)string->length, 0, 0);
 }
 
 #else
@@ -26,7 +26,7 @@ PrintString(struct string *string)
 static inline void
 PrintString(struct string *string)
 {
-  write(STDOUT_FILENO, string->value, string->length);
+  (void)write(STDOUT_FILENO, string->value, string->length);
 }
 
 #endif
