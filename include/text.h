@@ -139,24 +139,22 @@ IsStringContains(struct string *string, struct string *search)
     return 0;
 
   for (u64 stringIndex = 0; stringIndex < string->length; stringIndex++) {
-    b8 isFound = 1;
-    for (u64 searchIndex = 0, substringIndex = stringIndex; searchIndex < search->length;
-         searchIndex++, substringIndex++) {
-      b8 isEndOfString = substringIndex == string->length;
-      if (isEndOfString) {
-        isFound = 0;
-        break;
-      }
+    if (stringIndex + search->length > string->length)
+      return 0;
 
-      b8 isCharactersNotMatching = string->value[substringIndex] != search->value[searchIndex];
-      if (isCharactersNotMatching) {
+    struct string substring = StringSlice(string, stringIndex, stringIndex + search->length);
+    b8 isFound = 1;
+    for (u64 index = 0; index < substring.length; index++) {
+      if (substring.value[index] != search->value[index]) {
         isFound = 0;
         break;
       }
     }
 
-    if (isFound)
-      return 1;
+    if (!isFound)
+      continue;
+
+    return 1;
   }
 
   return 0;
@@ -168,12 +166,11 @@ IsStringStartsWith(struct string *string, struct string *search)
   if (!string || !search || string->length < search->length)
     return 0;
 
-  for (u64 searchIndex = 0; searchIndex < search->length; searchIndex++) {
-    b8 isCharactersNotMatching = string->value[searchIndex] != search->value[searchIndex];
-    if (isCharactersNotMatching)
+  struct string substring = StringSlice(string, 0, search->length);
+  for (u64 index = 0; index < substring.length; index++) {
+    if (substring.value[index] != search->value[index])
       return 0;
   }
-
   return 1;
 }
 
@@ -183,13 +180,11 @@ IsStringEndsWith(struct string *string, struct string *search)
   if (!string || !search || string->length < search->length)
     return 0;
 
-  for (u64 searchIndex = 0; searchIndex < search->length; searchIndex++) {
-    b8 isCharactersNotMatching =
-        string->value[string->length - 1 - searchIndex] != search->value[search->length - 1 - searchIndex];
-    if (isCharactersNotMatching)
+  struct string substring = StringSlice(string, string->length - search->length, string->length);
+  for (u64 index = 0; index < substring.length; index++) {
+    if (substring.value[index] != search->value[index])
       return 0;
   }
-
   return 1;
 }
 
