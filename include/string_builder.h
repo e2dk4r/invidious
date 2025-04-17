@@ -5,7 +5,7 @@
 #include "teju.h"
 #include "text.h"
 
-typedef struct {
+struct string_builder {
   // Output buffer. All appended things stored in here.
   // REQUIRED
   struct string *outBuffer;
@@ -15,7 +15,9 @@ typedef struct {
   struct string *stringBuffer;
   // Length of output buffer.
   u64 length;
-} string_builder;
+};
+
+typedef struct string_builder string_builder;
 
 static string_builder *
 MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLength)
@@ -241,8 +243,8 @@ StringBuilderAppendHexDump(string_builder *sb, struct string *string)
 static inline struct string
 StringBuilderFlush(string_builder *stringBuilder)
 {
-  struct string *outBuffer = stringBuilder->outBuffer;
-  struct string result = (struct string){.value = outBuffer->value, .length = stringBuilder->length};
+  debug_assert(stringBuilder->length != 0);
+  struct string result = StringSlice(stringBuilder->outBuffer, 0, stringBuilder->length);
   stringBuilder->length = 0;
   return result;
 }

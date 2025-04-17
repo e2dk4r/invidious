@@ -124,7 +124,6 @@ main(void)
       goto end;
     }
   }
-  StringBuilderFlush(sb);
 
 end:
   return (int)errorCode;
