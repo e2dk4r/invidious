@@ -161,13 +161,3 @@ MemoryTempEnd(memory_temp *tempMemory)
 }
 
 #define __cleanup_memory_temp__ __attribute__((cleanup(MemoryTempEnd)))
-
-#include "text.h"
-static struct string
-MemoryArenaPushString(memory_arena *arena, u64 size)
-{
-  return (struct string){
-      .value = MemoryArenaPush(arena, size, 4),
-      .length = size,
-  };
-}
