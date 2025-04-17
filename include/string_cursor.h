@@ -11,6 +11,8 @@ struct string_cursor {
   u64 position;
 };
 
+typedef struct string_cursor string_cursor;
+
 internalfn struct string_cursor
 StringCursorFromString(struct string *string)
 {
