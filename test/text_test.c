@@ -22,6 +22,8 @@
   XX(TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE, "lhs duration must NOT be less then rhs")                   \
   XX(TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_TRUE, "lhs duration must be greater then rhs")                  \
   XX(TEXT_TEST_ERROR_IS_DURATION_GREATER_THAN_EXPECTED_FALSE, "lhs duration must NOT be greater then rhs")             \
+  XX(TEXT_TEST_ERROR_PARSE_U64_EXPECTED_TRUE, "Parsing unsigned value must be successful")                             \
+  XX(TEXT_TEST_ERROR_PARSE_U64_EXPECTED_FALSE, "Parsing unsigned value must fail")                                     \
   XX(TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_TRUE, "Parsing hexadecimal value must be successful")                          \
   XX(TEXT_TEST_ERROR_PARSE_HEX_EXPECTED_FALSE, "Parsing hexadecimal value must fail")                                  \
   XX(TEXT_TEST_ERROR_FORMATU64_EXPECTED, "Formatting u64 value must be successful")                                    \
@@ -836,6 +838,107 @@ main(void)
         errorCode = expectedLessThan ? TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_TRUE
                                      : TEXT_TEST_ERROR_IS_DURATION_LESS_THAN_EXPECTED_FALSE;
         goto end;
+      }
+    }
+  }
+
+  // b8 ParseU64(struct string *string, u64 *value)
+  {
+    struct test_case {
+      struct string input;
+      struct {
+        b8 result;
+        u64 value;
+      } expected;
+    } testCases[] = {
+        {
+            .input = StringFromLiteral("0"),
+            .expected =
+                {
+                    .result = 1,
+                    .value = 0,
+                },
+        },
+        {
+            .input = StringFromLiteral("7"),
+            .expected =
+                {
+                    .result = 1,
+                    .value = 7,
+                },
+        },
+        {
+            .input = StringFromLiteral("18446744073709551615"),
+            .expected =
+                {
+                    .result = 1,
+                    .value = 18446744073709551615ul,
+                },
+        },
+        {
+            .input = StringFromLiteral("123456789ABCDEF"),
+            .expected =
+                {
+                    .result = 0,
+                },
+        },
+        {
+            .input = StringFromLiteral("ffffffffffffffff"),
+            .expected =
+                {
+                    .result = 0,
+                },
+        },
+        {
+            .input = {},
+            .expected =
+                {
+                    .result = 0,
+                },
+        },
+        {
+            .input = StringFromLiteral(""),
+            .expected =
+                {
+                    .result = 0,
+                },
+        },
+        {
+            .input = StringFromLiteral("not a unsigned value 1340"),
+            .expected =
+                {
+                    .result = 0,
+                },
+        },
+    };
+
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
+
+      struct string *input = &testCase->input;
+      b8 expectedResult = testCase->expected.result;
+      u64 expectedValue = testCase->expected.value;
+      u64 value;
+      b8 result = ParseU64(input, &value);
+      if (result != expectedResult || (expectedResult && value != expectedValue)) {
+        errorCode = expectedResult ? TEXT_TEST_ERROR_PARSE_U64_EXPECTED_TRUE : TEXT_TEST_ERROR_PARSE_U64_EXPECTED_FALSE;
+
+        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+        StringBuilderAppendStringLiteral(sb, "\n  input:    ");
+        StringBuilderAppendPrintableString(sb, input);
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
+        if (result != expectedResult)
+          StringBuilderAppendBool(sb, expectedResult);
+        else
+          StringBuilderAppendU64(sb, expectedValue);
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
+        if (result != expectedResult)
+          StringBuilderAppendBool(sb, result);
+        else
+          StringBuilderAppendU64(sb, value);
+        StringBuilderAppendStringLiteral(sb, "\n");
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
       }
     }
   }
