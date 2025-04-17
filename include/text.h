@@ -227,8 +227,130 @@ struct duration {
   u64 ns;
 };
 
-#define DURATION_IN_SECONDS(seconds) ((struct duration){.ns = (seconds) * 1e9L})
-#define DURATION_IN_DAYS(days) ((struct duration){.ns = 1e9L * 60 * 60 * 24 * days})
+static inline void
+DurationAddRef(struct duration *duration, struct duration elapsed)
+{
+  duration->ns += elapsed.ns;
+}
+
+static inline struct duration
+__DurationAddMultiple(struct duration *list, u64 count)
+{
+  struct duration result = {.ns = 0};
+  for (u64 index = 0; index < count; index++) {
+    struct duration *duration = list + index;
+    DurationAddRef(&result, *duration);
+  }
+  return result;
+}
+
+#define DurationAddMultiple(...)                                                                                       \
+  __DurationAddMultiple((struct duration[]){__VA_ARGS__},                                                              \
+                        sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
+
+static inline void
+DurationSubRef(struct duration *duration, struct duration elapsed)
+{
+  duration->ns -= elapsed.ns;
+}
+
+static inline struct duration
+__DurationSub(struct duration *list, u64 count)
+{
+  struct duration result = {.ns = 0};
+  for (u64 index = 0; index < count; index++) {
+    struct duration *duration = list + index;
+    DurationSubRef(&result, *duration);
+  }
+  return result;
+}
+
+#define DurationSubMultiple(...)                                                                                       \
+  __DurationSubMultiple((struct duration[]){__VA_ARGS__},                                                              \
+                        sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
+
+static inline struct duration
+DurationInNanoseconds(u64 nanoseconds)
+{
+  return (struct duration){
+      .ns = nanoseconds,
+  };
+}
+
+static inline struct duration
+DurationInMicroseconds(u64 microseconds)
+{
+  return (struct duration){
+      .ns = microseconds * 1000 /* 1e3 */,
+  };
+}
+
+static inline struct duration
+DurationInMilliseconds(u64 milliseconds)
+{
+  return (struct duration){
+      .ns = milliseconds * 1000000 /* 1e6 */,
+  };
+}
+
+static inline struct duration
+DurationInSeconds(u64 seconds)
+{
+  return (struct duration){
+      .ns = seconds * 1000000000 /* 1e9 */,
+  };
+}
+
+static inline struct duration
+DurationInMinutes(u64 minutes)
+{
+  return (struct duration){
+      .ns = minutes * 1000000000 /* 1e9 */ * 60,
+  };
+}
+
+static inline struct duration
+DurationInHours(u64 hours)
+{
+  return (struct duration){
+      .ns = hours * 1000000000 /* 1e9 */ * 60 * 60,
+  };
+}
+
+static inline struct duration
+DurationInDays(u64 days)
+{
+  return (struct duration){
+      .ns = days * 1000000000 /* 1e9 */ * 60 * 60 * 24,
+  };
+}
+
+static inline struct duration
+DurationInWeeks(u64 weeks)
+{
+  return (struct duration){
+      .ns = weeks * 1000000000 /* 1e9 */ * 60 * 60 * 24 * 7,
+  };
+}
+
+static inline struct duration
+DurationBetweenSeconds(u64 start, u64 end)
+{
+  debug_assert(end >= start);
+  return (struct duration){
+      .ns = (end - start) * 1000000000 /* 1e9 */,
+  };
+}
+
+static inline struct duration
+DurationBetweenNanoseconds(u64 start, u64 end)
+{
+  debug_assert(end >= start);
+  return (struct duration){
+      .ns = end - start,
+  };
+}
+
 static inline b8
 ParseDuration(struct string *string, struct duration *duration)
 {
@@ -272,28 +394,28 @@ ParseDuration(struct string *string, struct duration *duration)
       // - get unit
       struct string unitString = {.value = string->value + index, .length = string->length - index};
       if (/* unit: nanosecond */ IsStringStartsWith(&unitString, &nanosecondUnitString)) {
-        parsed.ns += value;
+        DurationAddRef(&parsed, DurationInNanoseconds(value));
         index += nanosecondUnitString.length - 1;
       } else if (/* unit: microsecond */ IsStringStartsWith(&unitString, &microsecondUnitString)) {
-        parsed.ns += value * 1000 /* 1e3 */;
+        DurationAddRef(&parsed, DurationInMicroseconds(value));
         index += microsecondUnitString.length - 1;
       } else if (/* unit: millisecond */ IsStringStartsWith(&unitString, &millisocondUnitString)) {
-        parsed.ns += value * 1000000 /* 1e6 */;
+        DurationAddRef(&parsed, DurationInMilliseconds(value));
         index += millisocondUnitString.length - 1;
       } else if (/* unit: second */ IsStringStartsWith(&unitString, &secondUnitString)) {
-        parsed.ns += value * 1000000000 /* 1e9 */;
+        DurationAddRef(&parsed, DurationInSeconds(value));
         index += secondUnitString.length - 1;
       } else if (/* unit: minute */ IsStringStartsWith(&unitString, &minuteUnitString)) {
-        parsed.ns += value * 1000000000 /* 1e9 */ * 60;
+        DurationAddRef(&parsed, DurationInMinutes(value));
         index += minuteUnitString.length;
       } else if (/* unit: hour */ IsStringStartsWith(&unitString, &hourUnitString)) {
-        parsed.ns += value * 1000000000 /* 1e9 */ * 60 * 60;
+        DurationAddRef(&parsed, DurationInHours(value));
         index += hourUnitString.length - 1;
       } else if (/* unit: day */ IsStringStartsWith(&unitString, &dayUnitString)) {
-        parsed.ns += value * 1000000000 /* 1e9 */ * 60 * 60 * 24;
+        DurationAddRef(&parsed, DurationInDays(value));
         index += dayUnitString.length - 1;
       } else if (/* unit: week */ IsStringStartsWith(&unitString, &weekUnitString)) {
-        parsed.ns += value * 1000000000 /* 1e9 */ * 60 * 60 * 24 * 7;
+        DurationAddRef(&parsed, DurationInNanoseconds(value));
         index += weekUnitString.length - 1;
       } else {
         // unsupported unit
@@ -322,9 +444,27 @@ IsDurationLessThan(struct duration *left, struct duration *right)
 }
 
 static inline b8
+IsDurationLessOrEqualThan(struct duration *left, struct duration *right)
+{
+  return left->ns <= right->ns;
+}
+
+static inline b8
 IsDurationGreaterThan(struct duration *left, struct duration *right)
 {
   return left->ns > right->ns;
+}
+
+static inline b8
+IsDurationGreaterOrEqualThan(struct duration *left, struct duration *right)
+{
+  return left->ns >= right->ns;
+}
+
+static inline b8
+IsDurationEqual(struct duration *left, struct duration *right)
+{
+  return left->ns == right->ns;
 }
 
 static inline b8

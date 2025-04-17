@@ -644,76 +644,109 @@ main(void)
   {
     struct test_case {
       struct string string;
-      u64 expectedDurationInNanoseconds;
-      b8 expected;
+      struct {
+        b8 value;
+        struct duration duration;
+      } expected;
     } testCases[] = {
         {
-            .string = StringFromLiteral("1ns"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 1,
+            .string = StringFromLiteral("0ns"),
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInNanoseconds(0),
+                },
         },
         {
             .string = StringFromLiteral("1ns"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 1,
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInNanoseconds(1),
+                },
         },
         {
             .string = StringFromLiteral("1sec"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 1 * 1000000000ull /* 1e9 */,
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInSeconds(1),
+                },
         },
         {
             .string = StringFromLiteral("5sec"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 5 * 1000000000ull /* 1e9 */,
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInSeconds(5),
+                },
         },
         {
             .string = StringFromLiteral("7min"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 1000000000ull /* 1e9 */ * 60 * 7,
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInMinutes(7),
+                },
+        },
+        {
+            .string = StringFromLiteral("39day"),
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationInDays(39),
+                },
         },
         {
             .string = StringFromLiteral("1hr5min"),
-            .expected = 1,
-            .expectedDurationInNanoseconds =
-                (1000000000ull /* 1e9 */ * 60 * 60 * 1) + (1000000000ull /* 1e9 */ * 60 * 5),
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationAddMultiple(DurationInHours(1), DurationInMinutes(5)),
+                },
         },
         {
-            .string = StringFromLiteral("1hr5min"),
-            .expected = 1,
-            .expectedDurationInNanoseconds =
-                (1000000000ull /* 1e9 */ * 60 * 60 * 1) + (1000000000ull /* 1e9 */ * 60 * 5),
-        },
-        {
-            .string = StringFromLiteral("10day"),
-            .expected = 1,
-            .expectedDurationInNanoseconds = 1000000000ULL /* 1e9 */ * 60 * 60 * 24 * 10,
-        },
-        {
-            .string = StringFromLiteral("10day1sec"),
-            .expected = 1,
-            .expectedDurationInNanoseconds =
-                (1000000000ull /* 1e9 */ * 60 * 60 * 24 * 10) + (1000000000ull /* 1e9 */ * 1),
+            .string = StringFromLiteral("73day384sec"),
+            .expected =
+                {
+                    .value = 1,
+                    .duration = DurationAddMultiple(DurationInDays(73), DurationInSeconds(384)),
+                },
         },
         {
             .string = (struct string){}, // NULL
-            .expected = 0,
+            .expected =
+                {
+                    .value = 0,
+                },
         },
         {
             .string = StringFromLiteral(""), // EMPTY
-            .expected = 0,
+            .expected =
+                {
+                    .value = 0,
+                },
         },
         {
             .string = StringFromLiteral(" "), // SPACE
-            .expected = 0,
+            .expected =
+                {
+                    .value = 0,
+                },
         },
         {
             .string = StringFromLiteral("abc"),
-            .expected = 0,
+            .expected =
+                {
+                    .value = 0,
+                },
         },
         {
             .string = StringFromLiteral("5m5s"),
-            .expected = 0,
+            .expected =
+                {
+                    .value = 0,
+                },
         },
     };
 
@@ -722,10 +755,10 @@ main(void)
       struct string *string = &testCase->string;
       struct duration duration;
 
-      u64 expectedDurationInNanoseconds = testCase->expectedDurationInNanoseconds;
-      b8 expected = testCase->expected;
-      b8 value = ParseDuration(string, &duration);
-      if (value != expected || (expected && duration.ns != expectedDurationInNanoseconds)) {
+      struct duration *expectedDuration = &testCase->expected.duration;
+      b8 expected = testCase->expected.value;
+      b8 got = ParseDuration(string, &duration);
+      if (got != expected || (expected && !IsDurationEqual(&duration, expectedDuration))) {
         errorCode =
             expected ? TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_TRUE : TEXT_TEST_ERROR_PARSE_DURATION_EXPECTED_FALSE;
 
@@ -736,11 +769,11 @@ main(void)
         StringBuilderAppendBool(sb, expected);
         if (expected) {
           StringBuilderAppendStringLiteral(sb, " duration: ");
-          StringBuilderAppendU64(sb, expectedDurationInNanoseconds);
+          StringBuilderAppendU64(sb, expectedDuration->ns);
           StringBuilderAppendStringLiteral(sb, "ns");
         }
         StringBuilderAppendStringLiteral(sb, "\n       got: ");
-        StringBuilderAppendBool(sb, value);
+        StringBuilderAppendBool(sb, got);
         if (expected) {
           StringBuilderAppendStringLiteral(sb, " duration: ");
           StringBuilderAppendU64(sb, duration.ns);
