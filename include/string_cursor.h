@@ -38,6 +38,16 @@ StringCursorExtractSubstring(struct string_cursor *cursor, u64 length)
 }
 
 internalfn struct string
+StringCursorExtractConsumed(struct string_cursor *cursor)
+{
+  struct string substring = {};
+  if (cursor->position == 0)
+    return substring;
+  substring = StringFromBuffer(cursor->source->value, cursor->position);
+  return substring;
+}
+
+internalfn struct string
 StringCursorExtractRemaining(struct string_cursor *cursor)
 {
   return StringCursorExtractSubstring(cursor, StringCursorRemainingLength(cursor));

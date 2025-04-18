@@ -7,6 +7,7 @@ export TZ=UTC
 IsBuildDebug=1
 IsBuildEnabled=1
 IsTestsEnabled=1
+IsToolsEnabled=1
 
 PROJECT_NAME=invidious
 OUTPUT_NAME=$PROJECT_NAME
@@ -35,6 +36,9 @@ usage() {
 
     test
       Run tests.
+
+    tools
+      Build the tools
 
     -h, --help
       Display help page.
@@ -73,6 +77,9 @@ for i in "$@"; do
     test|tests)
       IsBuildEnabled=0
       IsTestsEnabled=1
+      ;;
+    tools)
+      IsToolsEnabled=1
       ;;
     -h|-help|--help)
       usage
@@ -440,6 +447,11 @@ fi
 if [ $IsTestsEnabled -eq 1 ]; then
   set +e
   . "$ProjectRoot/test/build.sh"
+fi
+
+if [ $IsToolsEnabled -eq 1 ]; then
+  set -e
+  . "$ProjectRoot/tool/build.sh"
 fi
 
 Log "================================================================"

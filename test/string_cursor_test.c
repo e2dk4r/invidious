@@ -11,7 +11,8 @@
   XX(STRING_CURSOR_TEST_ERROR_CONSUME_UNTIL_EXPECTED, "Text consumed must match the expected")                         \
   XX(STRING_CURSOR_TEST_ERROR_EXTRACT_THROUGH_EXPECTED, "Text extracted through search must match the expected")       \
   XX(STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_TRUE, "Number must be extracted from cursor position")           \
-  XX(STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_FALSE, "Number must NOT be extracted from cursor position")
+  XX(STRING_CURSOR_TEST_ERROR_EXTRACT_NUMBER_EXPECTED_FALSE, "Number must NOT be extracted from cursor position")      \
+  XX(STRING_CURSOR_TEST_ERROR_EXTRACT_CONSUMED, "Consumed string not matching expected")
 
 enum string_cursor_test_error {
   STRING_CURSOR_TEST_ERROR_NONE = 0,
@@ -695,6 +696,64 @@ main(void)
         StringBuilderAppendPrintableString(sb, expected);
         StringBuilderAppendStringLiteral(sb, "\n       got: ");
         StringBuilderAppendPrintableString(sb, &got);
+        StringBuilderAppendStringLiteral(sb, "\n");
+        struct string errorMessage = StringBuilderFlush(sb);
+        PrintString(&errorMessage);
+      }
+    }
+  }
+
+  // struct string StringCursorExtractConsumed(struct string_cursor *cursor)
+  {
+    struct test_case {
+      struct string_cursor cursor;
+      struct string expected;
+    } testCases[] = {
+        {
+            .cursor =
+                {
+                    .source = &StringFromLiteral("Lorem Ipsum"),
+                    .position = 6,
+                },
+            .expected = StringFromLiteral("Lorem "),
+        },
+        {
+            .cursor =
+                {
+                    .source = &StringFromLiteral("Lorem Ipsum"),
+                    .position = 0,
+                },
+            .expected = {},
+        },
+        {
+            .cursor =
+                {
+                    .source = &StringFromLiteral(""),
+                    .position = 0,
+                },
+            .expected = {},
+        },
+    };
+
+    for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
+      struct test_case *testCase = testCases + testCaseIndex;
+
+      struct string *expected = &testCase->expected;
+
+      struct string_cursor *cursor = &testCase->cursor;
+      struct string got = StringCursorExtractConsumed(cursor);
+      if (!IsStringEqual(&got, expected)) {
+        errorCode = STRING_CURSOR_TEST_ERROR_EXTRACT_CONSUMED;
+
+        StringBuilderAppendString(sb, GetTextTestErrorMessage(errorCode));
+        StringBuilderAppendStringLiteral(sb, "\n  cursor: '");
+        StringBuilderAppendString(sb, cursor->source);
+        StringBuilderAppendStringLiteral(sb, "' at position: ");
+        StringBuilderAppendU64(sb, cursor->position);
+        StringBuilderAppendStringLiteral(sb, "\n  expected: ");
+        StringBuilderAppendString(sb, expected);
+        StringBuilderAppendStringLiteral(sb, "\n       got: ");
+        StringBuilderAppendString(sb, &got);
         StringBuilderAppendStringLiteral(sb, "\n");
         struct string errorMessage = StringBuilderFlush(sb);
         PrintString(&errorMessage);
