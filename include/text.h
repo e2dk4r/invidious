@@ -526,54 +526,14 @@ ParseU64(struct string *string, u64 *value)
   return 1;
 }
 
-static inline b8
-ParseHex(struct string *string, u64 *value)
-{
-  // max 0xffffffffffffffff => 18446744073709551615
-  if (!string || IsStringNull(string) || IsStringEmpty(string) || string->length > 16)
-    return 0;
-
-  u64 parsed = 0;
-  for (u64 index = 0; index < string->length; index++) {
-    comptime s8 ASCIItoHEX[256] = {
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x00
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x10
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x20
-        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, -1, -1, -1, -1, -1, -1, // 0x30
-        -1,  0xa, 0xb, 0xc, 0xd, 0xe, 0xf, -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x40
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x50
-        -1,  0xA, 0xB, 0xC, 0xD, 0xE, 0xF, -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x60
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x70
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x80
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x90
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xa0
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xb0
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xc0
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xd0
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xe0
-        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1      // 0xf0
-    };
-    u8 digitCharacter = string->value[index];
-    s8 digit = ASCIItoHEX[digitCharacter];
-
-    b8 isHexadecimal = digit >= 0;
-    if (!isHexadecimal)
-      return 0;
-
-    u64 power = (string->length - 1) - index;
-    parsed += (u64)digit * ((u64)1 << (4 * power));
-  }
-
-  *value = parsed;
-  return 1;
-}
-
 /*
+ * Format u64 into string buffer
  * string buffer must at least able to hold 1 bytes, at most 20 bytes.
  */
 static inline struct string
 FormatU64(struct string *stringBuffer, u64 value)
 {
+  // max 18446744073709551615
   struct string result = {};
   if (!stringBuffer || stringBuffer->length == 0)
     return result;
@@ -604,6 +564,10 @@ FormatU64(struct string *stringBuffer, u64 value)
   return result;
 }
 
+/*
+ * Format s64 into string buffer
+ * string buffer must at least able to hold 1 bytes, at most 20 bytes.
+ */
 static inline struct string
 FormatS64(struct string *stringBuffer, s64 value)
 {
@@ -712,11 +676,53 @@ FormatF32Slow(struct string *stringBuffer, f32 value, u32 fractionCount)
   return result;
 }
 
+static inline b8
+ParseHex(struct string *string, u64 *value)
+{
+  // max 0xffffffffffffffff => 18446744073709551615
+  if (!string || IsStringNull(string) || IsStringEmpty(string) || string->length > 16)
+    return 0;
+
+  u64 parsed = 0;
+  for (u64 index = 0; index < string->length; index++) {
+    comptime s8 ASCIItoHEX[256] = {
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x00
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x10
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x20
+        0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, -1, -1, -1, -1, -1, -1, // 0x30
+        -1,  0xa, 0xb, 0xc, 0xd, 0xe, 0xf, -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x40
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x50
+        -1,  0xA, 0xB, 0xC, 0xD, 0xE, 0xF, -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x60
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x70
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x80
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0x90
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xa0
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xb0
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xc0
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xd0
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1, -1, // 0xe0
+        -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1,  -1, -1, -1, -1, -1      // 0xf0
+    };
+    u8 digitCharacter = string->value[index];
+    s8 digit = ASCIItoHEX[digitCharacter];
+
+    b8 isHexadecimal = digit >= 0;
+    if (!isHexadecimal)
+      return 0;
+
+    u64 power = (string->length - 1) - index;
+    parsed += (u64)digit * ((u64)1 << (4 * power));
+  }
+
+  *value = parsed;
+  return 1;
+}
+
 /*
  *
  * Converts unsigned 64-bit integer to hex string.
  *
- * @param stringBuffer needs at least 18 bytes
+ * @param stringBuffer needs at least 2 bytes, at 16 maximum
  * @return sub string from stringBuffer, returns 0 on string.value on failure
  *
  * @note Adapted from
