@@ -19,6 +19,12 @@ struct string_builder {
 
 typedef struct string_builder string_builder;
 
+static inline void
+StringBuilderClear(struct string_builder *stringBuilder)
+{
+  stringBuilder->length = 0;
+}
+
 static string_builder *
 MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLength)
 {
@@ -39,7 +45,8 @@ MakeStringBuilder(memory_arena *arena, u64 outBufferLength, u64 stringBufferLeng
     stringBuffer->value = MemoryArenaPush(arena, sizeof(u8) * stringBuffer->length);
     sb->stringBuffer = stringBuffer;
   }
-  sb->length = 0;
+
+  StringBuilderClear(sb);
 
   return sb;
 }
@@ -245,7 +252,7 @@ StringBuilderFlush(string_builder *stringBuilder)
 {
   debug_assert(stringBuilder->length != 0);
   struct string result = StringSlice(stringBuilder->outBuffer, 0, stringBuilder->length);
-  stringBuilder->length = 0;
+  StringBuilderClear(stringBuilder);
   return result;
 }
 
