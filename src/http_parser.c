@@ -75,6 +75,9 @@ enum http_token_type {
   HTTP_TOKEN_HEADER_EXPIRES,
   HTTP_TOKEN_HEADER_LAST_MODIFIED,
 
+  /* Commonly used headers */
+  HTTP_TOKEN_HEADER_SERVER,
+
   HTTP_TOKEN_CONTENT,
 
   /* https://www.rfc-editor.org/rfc/rfc2616#section-3.6.1 "Chunked Transfer Coding" */
@@ -351,6 +354,8 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
         tokenType = HTTP_TOKEN_HEADER_EXPIRES;
       else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("last-modified")))
         tokenType = HTTP_TOKEN_HEADER_LAST_MODIFIED;
+      else if (IsStringEqualIgnoreCase(&fieldName, &StringFromLiteral("server")))
+        tokenType = HTTP_TOKEN_HEADER_SERVER;
 
       if (tokenType == HTTP_TOKEN_NONE) {
         // Pass unrecognized http header fields

@@ -111,6 +111,8 @@ StringBuilderAppendHttpTokenType(string_builder *sb, enum http_token_type type)
       [HTTP_TOKEN_HEADER_EXPIRES] = StringFromLiteral("Expires"),
       [HTTP_TOKEN_HEADER_LAST_MODIFIED] = StringFromLiteral("Last-Modified"),
 
+      [HTTP_TOKEN_HEADER_SERVER] = StringFromLiteral("Server"),
+
       [HTTP_TOKEN_CHUNK_SIZE] = StringFromLiteral("Chunk size"),
       [HTTP_TOKEN_CHUNK_DATA] = StringFromLiteral("Chunk data"),
   };
@@ -419,12 +421,58 @@ main(void)
                             StringFromLiteral("200"),
                             StringFromLiteral("application/json"),
                             StringFromLiteral("chunked"),
-                            StringFromLiteral("b"),
+                            StringFromLiteral("c"),
                             StringFromLiteral("[ 4029, 2104"),
                             StringFromLiteral("9"),
                             StringFromLiteral("9342, 0 ]"),
                         },
                     .content = &StringFromLiteral("[ 4029, 21049342, 0 ]"),
+                },
+        },
+        {
+            .httpResponse = &StringFromLiteral(
+                /*** --- Status-Line -------------------------------- ***/
+                "HTTP/1.1 200 OK" CRLF
+                /*** --- Header Fields ------------------------------ ***/
+                /**/ "Server: nginx/1.18.0 (Ubuntu)" CRLF
+                /**/ "Date: Fri, 18 Apr 2025 07:14:00 GMT" CRLF
+                /**/ "Content-Type: application/json" CRLF
+                /**/ "Content-Length: 11" CRLF
+                /**/ "Connection: keep-alive" CRLF
+                /**/ CRLF
+                /*** --- Message Body ------------------------------- ***/
+                /**/ "[ 1, 2, 3 ]"),
+            .expected =
+                {
+                    .error = HTTP_PARSER_ERROR_NONE,
+                    .httpTokenCount = 8,
+                    .httpTokens =
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                    // fields
+                    (struct http_token[]){
+                        {.type = HTTP_TOKEN_HTTP_VERSION, .start = 0x0, .end = 0x8},
+                        {.type = HTTP_TOKEN_STATUS_CODE, .start = 0x9, .end = 0xc},
+                        {.type = HTTP_TOKEN_HEADER_SERVER, .start = 0x19, .end = 0x2e},
+                        {.type = HTTP_TOKEN_HEADER_DATE, .start = 0x36, .end = 0x53},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_TYPE, .start = 0x63, .end = 0x73},
+                        {.type = HTTP_TOKEN_HEADER_CONTENT_LENGTH, .start = 0x85, .end = 0x87},
+                        {.type = HTTP_TOKEN_HEADER_CONNECTION, .start = 0x95, .end = 0x9f},
+                        {.type = HTTP_TOKEN_CONTENT, .start = 0xa3, .end = 0xae},
+                        // NOTE: when changing this array, do not forget to update httpTokenCount, httpTokenStrings
+                        // fields
+                    },
+                    .httpTokenStrings =
+                        (struct string[]){
+                            StringFromLiteral("HTTP/1.1"),
+                            StringFromLiteral("200"),
+                            StringFromLiteral("nginx/1.18.0 (Ubuntu)"),
+                            StringFromLiteral("Fri, 18 Apr 2025 07:14:00 GMT"),
+                            StringFromLiteral("application/json"),
+                            StringFromLiteral("11"),
+                            StringFromLiteral("keep-alive"),
+                            StringFromLiteral("[ 1, 2, 3 ]"),
+                        },
+                    .content = &StringFromLiteral("[ 1, 2, 3 ]"),
                 },
         },
 #undef CRLF
@@ -498,9 +546,11 @@ main(void)
       for (u32 httpTokenIndex = 0; httpTokenIndex < httpParser->tokenCount; httpTokenIndex++) {
         struct http_token *httpToken = httpParser->tokens + httpTokenIndex;
         struct http_token *expectedHttpToken = testCase->expected.httpTokens + httpTokenIndex;
+        struct string gotString = HttpTokenExtractString(httpToken, httpResponse);
+        struct string *expectedString = testCase->expected.httpTokenStrings + httpTokenIndex;
 
         if (httpToken->type == expectedHttpToken->type && httpToken->start == expectedHttpToken->start &&
-            httpToken->end == expectedHttpToken->end)
+            httpToken->end == expectedHttpToken->end && IsStringEqual(&gotString, expectedString))
           continue;
 
         errorCode = expectedError == HTTP_PARSER_ERROR_NONE ? HTTP_PARSER_TEST_ERROR_PARSE_EXPECTED_TRUE
@@ -521,7 +571,6 @@ main(void)
         StringBuilderAppendStringLiteral(sb, " at index: ");
         StringBuilderAppendU64(sb, httpTokenIndex);
         StringBuilderAppendStringLiteral(sb, "\n");
-        struct string *expectedString = testCase->expected.httpTokenStrings + httpTokenIndex;
         StringBuilderAppendPrintableHexDump(sb, expectedString);
 
         debug_assert(expectedString->length == expectedHttpToken->end - expectedHttpToken->start &&
@@ -534,7 +583,6 @@ main(void)
         StringBuilderAppendStringLiteral(sb, ", end: ");
         StringBuilderAppendU64(sb, httpToken->end);
         StringBuilderAppendStringLiteral(sb, "\n");
-        struct string gotString = HttpTokenExtractString(httpToken, httpResponse);
         StringBuilderAppendPrintableHexDump(sb, &gotString);
 
         StringBuilderAppendStringLiteral(sb, "\n");
