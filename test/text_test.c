@@ -469,6 +469,36 @@ main(void)
             .search = StringFromLiteral("jkl"),
             .expected = 0,
         },
+        {
+            .string = StringFromLiteral("abc def ghi"),
+            .search = {},
+            .expected = 0,
+        },
+        {
+            .string = StringFromLiteral("abc def ghi"),
+            .search = StringFromLiteral(""),
+            .expected = 0,
+        },
+        {
+            .string = {},
+            .search = StringFromLiteral(""),
+            .expected = 0,
+        },
+        {
+            .string = StringFromLiteral(""),
+            .search = {},
+            .expected = 0,
+        },
+        {
+            .string = {},
+            .search = {},
+            .expected = 0,
+        },
+        {
+            .string = StringFromLiteral(""),
+            .search = StringFromLiteral(""),
+            .expected = 0,
+        },
     };
 
     for (u32 testCaseIndex = 0; testCaseIndex < ARRAY_COUNT(testCases); testCaseIndex++) {
@@ -529,6 +559,26 @@ main(void)
         {
             .string = StringFromLiteral("abc def ghi"),
             .search = StringFromLiteral("jkl"),
+            .expected = 0,
+        },
+        {
+            .string = {},
+            .search = StringFromLiteral(""),
+            .expected = 0,
+        },
+        {
+            .string = StringFromLiteral(""),
+            .search = {},
+            .expected = 0,
+        },
+        {
+            .string = {},
+            .search = {},
+            .expected = 0,
+        },
+        {
+            .string = StringFromLiteral(""),
+            .search = StringFromLiteral(""),
             .expected = 0,
         },
     };

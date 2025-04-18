@@ -163,7 +163,7 @@ IsStringContains(struct string *string, struct string *search)
 static inline b8
 IsStringStartsWith(struct string *string, struct string *search)
 {
-  if (!string || !search || string->length < search->length)
+  if (!string || !search || search->length == 0 || string->length < search->length)
     return 0;
 
   struct string substring = StringSlice(string, 0, search->length);
@@ -177,7 +177,7 @@ IsStringStartsWith(struct string *string, struct string *search)
 static inline b8
 IsStringEndsWith(struct string *string, struct string *search)
 {
-  if (!string || !search || string->length < search->length)
+  if (!string || !search || search->length == 0 || string->length < search->length)
     return 0;
 
   struct string substring = StringSlice(string, string->length - search->length, string->length);
