@@ -245,7 +245,7 @@ main(int argc, char *argv[])
     }
   }
 
-  if (IsStringNull(&options->templatePath) || IsStringEmpty(&options->templatePath)) {
+  if (IsStringNullOrEmpty(&options->templatePath)) {
     StringBuilderAppendStringLiteral(sb, "--template option is required");
     StringBuilderAppendStringLiteral(sb, "\nSee --help for more information");
     StringBuilderAppendStringLiteral(sb, "\n");

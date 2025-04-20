@@ -83,6 +83,12 @@ IsStringEmpty(struct string *string)
 }
 
 static inline b8
+IsStringNullOrEmpty(struct string *string)
+{
+  return IsStringNull(string) || IsStringEmpty(string);
+}
+
+static inline b8
 IsStringEqual(struct string *left, struct string *right)
 {
   if (!left || !right || (IsStringNull(left) && IsStringEmpty(right)) || (IsStringEmpty(left) && IsStringNull(right)))
