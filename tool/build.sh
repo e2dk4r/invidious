@@ -7,8 +7,12 @@ if [ ! -e "$outputDir" ]; then
 fi
 
 ### gen_pseudo_random
+tool=gen_pseudo_random
 inc="-I$ProjectRoot/include"
-src="$pwd/gen_pseudo_random.c"
+src="$pwd/$tool.c"
 lib=""
-output="$outputDir/$(BasenameWithoutExtension "$src")"
-"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+output="$outputDir/$tool"
+StartTimer
+if "$cc" $cflags $ldflags $inc -o "$output" $src $lib; then
+  echo "$tool compiled in $(StopTimer) seconds."
+fi
