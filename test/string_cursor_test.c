@@ -721,6 +721,14 @@ main(void)
             .cursor =
                 {
                     .source = &StringFromLiteral("Lorem Ipsum"),
+                    .position = 11,
+                },
+            .expected = StringFromLiteral("Lorem Ipsum"),
+        },
+        {
+            .cursor =
+                {
+                    .source = &StringFromLiteral("Lorem Ipsum"),
                     .position = 0,
                 },
             .expected = {},
