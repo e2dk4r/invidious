@@ -32,8 +32,10 @@ enum platform_error {
 #if IS_PLATFORM_LINUX
 
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sys/random.h>
+#include <sys/stat.h>
 
 internalfn void
 StringBuilderAppendPlatformError(struct string_builder *stringBuilder)
@@ -45,7 +47,7 @@ StringBuilderAppendPlatformError(struct string_builder *stringBuilder)
 }
 
 internalfn enum platform_error
-GetRandom(struct string *buffer)
+PlatformGetRandom(struct string *buffer)
 {
   s64 result = getrandom(buffer->value, buffer->length, 0);
   if (result < 0)
@@ -57,9 +59,8 @@ GetRandom(struct string *buffer)
   return IO_ERROR_NONE;
 }
 
-#include <sys/stat.h>
 internalfn b8
-IsFileExists(struct string *path, enum platform_error *error)
+PlatformIsFileExists(struct string *path, enum platform_error *error)
 {
   debug_assert(path->value[path->length] == 0 && "must be zero-terminated string");
 
@@ -73,9 +74,8 @@ IsFileExists(struct string *path, enum platform_error *error)
   return S_ISREG(sb.st_mode);
 }
 
-#include <fcntl.h>
 internalfn enum platform_error
-ReadFile(struct string *buffer, struct string *path, struct string *content)
+PlatformReadFile(struct string *buffer, struct string *path, struct string *content)
 {
   debug_assert(path->value[path->length] == 0 && "must be zero-terminated string");
   enum platform_error error = IO_ERROR_NONE;
@@ -113,11 +113,10 @@ ReadFile(struct string *buffer, struct string *path, struct string *content)
 
 #elif IS_PLATFORM_WINDOWS
 
-// TODO: test it on windows
 #include <bcrypt.h>
 
 internalfn b8
-GetRandom(string *buffer)
+PlatformGetRandom(string *buffer)
 {
   NTSTATUS status = BCryptGenRandom(0, buffer->value, buffer->length, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
   if (status != STATUS_SUCCESS) {
@@ -166,7 +165,7 @@ main(int argc, char *argv[])
 
       string value = StringFromZeroTerminated((u8 *)argv[argumentIndex], 1024);
       enum platform_error error;
-      if (!IsFileExists(&value, &error)) {
+      if (!PlatformIsFileExists(&value, &error)) {
         StringBuilderAppendStringLiteral(sb, "Template at '");
         StringBuilderAppendString(sb, &value);
         StringBuilderAppendStringLiteral(sb, "' is not found\n");
@@ -285,9 +284,9 @@ main(int argc, char *argv[])
     u32 max;
     for (u32 randomNumberIndex = 0; randomNumberIndex < options->randomNumberCount; randomNumberIndex++) {
       if (IsStringCursorAtEnd(&randomCursor)) {
-        enum platform_error error = GetRandom(randomBuffer);
+        enum platform_error error = PlatformGetRandom(randomBuffer);
         if (error != IO_ERROR_NONE) {
-          StringBuilderAppendStringLiteral(sb, "Error: getrandom() ");
+          StringBuilderAppendStringLiteral(sb, "Error: GetRandom() ");
           if (error == IO_ERROR_BUFFER_PARTIALLY_FILLED)
             StringBuilderAppendStringLiteral(sb, "insufficent entropy");
           else if (error == IO_ERROR_PLATFORM)
@@ -334,7 +333,7 @@ main(int argc, char *argv[])
   string *templateBuffer = MakeString(&stackMemory, 256 * KILOBYTES);
   string template;
   {
-    enum platform_error error = ReadFile(templateBuffer, &options->templatePath, &template);
+    enum platform_error error = PlatformReadFile(templateBuffer, &options->templatePath, &template);
     if (error != IO_ERROR_NONE) {
       StringBuilderAppendStringLiteral(sb, "Error: file not read\n");
 
