@@ -21,73 +21,82 @@ struct context {
   string_builder *sb;
 };
 
+enum platform_error {
+  IO_ERROR_NONE,
+  IO_ERROR_FILE_NOT_FOUND,
+  IO_ERROR_BUFFER_OUT_OF_MEMORY,
+  IO_ERROR_BUFFER_PARTIALLY_FILLED,
+  IO_ERROR_PLATFORM,
+};
+
 #if IS_PLATFORM_LINUX
 
 #include <errno.h>
+#include <string.h>
 #include <sys/random.h>
 
-internalfn b8
-GetRandom(struct context *context, struct string *buffer)
+internalfn void
+StringBuilderAppendPlatformError(struct string_builder *stringBuilder)
 {
-  struct string_builder *sb = context->sb;
+  struct string error = StringFromZeroTerminated((u8 *)strerror(errno), 4096);
+  StringBuilderAppendS32(stringBuilder, errno);
+  StringBuilderAppendStringLiteral(stringBuilder, " ");
+  StringBuilderAppendString(stringBuilder, &error);
+}
+
+internalfn enum platform_error
+GetRandom(struct string *buffer)
+{
   s64 result = getrandom(buffer->value, buffer->length, 0);
-  if (result < 0) {
-    StringBuilderAppendStringLiteral(sb, "Error: getrandom() failed with ");
-    StringBuilderAppendS64(sb, errno);
-    StringBuilderAppendStringLiteral(sb, "\n");
-    struct string message = StringBuilderFlush(sb);
-    PrintString(&message);
-    return 0;
-  }
+  if (result < 0)
+    return IO_ERROR_PLATFORM;
 
-  if ((u64)result != buffer->length) {
-    StringBuilderAppendStringLiteral(sb, "Error: getrandom() insufficent entropy\n");
-    struct string message = StringBuilderFlush(sb);
-    PrintString(&message);
-    return 0;
-  }
+  if ((u64)result != buffer->length)
+    return IO_ERROR_BUFFER_PARTIALLY_FILLED;
 
-  return 1;
+  return IO_ERROR_NONE;
 }
 
 #include <sys/stat.h>
 internalfn b8
-IsFileExists(struct string *path)
+IsFileExists(struct string *path, enum platform_error *error)
 {
   debug_assert(path->value[path->length] == 0 && "must be zero-terminated string");
 
   struct stat sb;
-  if (lstat((char *)path->value, &sb))
+  if (lstat((char *)path->value, &sb)) {
+    *error = IO_ERROR_PLATFORM;
     return 0;
+  }
 
   // if it is not regular file. man inode.7
-  if (!S_ISREG(sb.st_mode))
-    return 0;
-
-  return 1;
+  return S_ISREG(sb.st_mode);
 }
 
 #include <fcntl.h>
-internalfn struct string
-ReadFile(struct string *buffer, struct string *path)
+internalfn enum platform_error
+ReadFile(struct string *buffer, struct string *path, struct string *content)
 {
   debug_assert(path->value[path->length] == 0 && "must be zero-terminated string");
-  struct string result = {};
+  enum platform_error error = IO_ERROR_NONE;
 
   int fd = open((char *)path->value, O_RDONLY);
   if (fd < 0) {
-    // error
-    return result;
+    return IO_ERROR_FILE_NOT_FOUND;
   }
 
   struct string_cursor bufferCursor = StringCursorFromString(buffer);
   while (1) {
     struct string remainingBuffer = StringCursorExtractRemaining(&bufferCursor);
+    if (IsStringCursorAtEnd(&bufferCursor)) {
+      error = IO_ERROR_BUFFER_OUT_OF_MEMORY;
+      break;
+    }
 
     s64 readBytes = read(fd, remainingBuffer.value, remainingBuffer.length);
     if (readBytes == -1) {
-      // error
-      return result;
+      error = IO_ERROR_PLATFORM;
+      return error;
     } else if (readBytes == 0) {
       // end of file
       break;
@@ -98,9 +107,8 @@ ReadFile(struct string *buffer, struct string *path)
 
   close(fd);
 
-  result = StringCursorExtractConsumed(&bufferCursor);
-
-  return result;
+  *content = StringCursorExtractConsumed(&bufferCursor);
+  return error;
 }
 
 #elif IS_PLATFORM_WINDOWS
@@ -157,10 +165,18 @@ main(int argc, char *argv[])
       }
 
       string value = StringFromZeroTerminated((u8 *)argv[argumentIndex], 1024);
-      if (!IsFileExists(&value)) {
+      enum platform_error error;
+      if (!IsFileExists(&value, &error)) {
         StringBuilderAppendStringLiteral(sb, "Template at '");
         StringBuilderAppendString(sb, &value);
         StringBuilderAppendStringLiteral(sb, "' is not found\n");
+
+        if (error == IO_ERROR_PLATFORM) {
+          StringBuilderAppendStringLiteral(sb, "  ");
+          StringBuilderAppendPlatformError(sb);
+          StringBuilderAppendStringLiteral(sb, "\n");
+        }
+
         string message = StringBuilderFlush(sb);
         PrintString(&message);
         return -1;
@@ -269,8 +285,19 @@ main(int argc, char *argv[])
     u32 max;
     for (u32 randomNumberIndex = 0; randomNumberIndex < options->randomNumberCount; randomNumberIndex++) {
       if (IsStringCursorAtEnd(&randomCursor)) {
-        if (!GetRandom(&context, randomBuffer))
+        enum platform_error error = GetRandom(randomBuffer);
+        if (error != IO_ERROR_NONE) {
+          StringBuilderAppendStringLiteral(sb, "Error: getrandom() ");
+          if (error == IO_ERROR_BUFFER_PARTIALLY_FILLED)
+            StringBuilderAppendStringLiteral(sb, "insufficent entropy");
+          else if (error == IO_ERROR_PLATFORM)
+            StringBuilderAppendPlatformError(sb);
+          StringBuilderAppendStringLiteral(sb, "\n");
+          struct string message = StringBuilderFlush(sb);
+          PrintString(&message);
           return -1;
+        }
+
         randomCursor = StringCursorFromString(randomBuffer);
       }
 
@@ -305,8 +332,38 @@ main(int argc, char *argv[])
 
   // Read template
   string *templateBuffer = MakeString(&stackMemory, 256 * KILOBYTES);
-  string template = ReadFile(templateBuffer, &options->templatePath);
+  string template;
+  {
+    enum platform_error error = ReadFile(templateBuffer, &options->templatePath, &template);
+    if (error != IO_ERROR_NONE) {
+      StringBuilderAppendStringLiteral(sb, "Error: file not read\n");
 
+      StringBuilderAppendStringLiteral(sb, "  path: '");
+      StringBuilderAppendString(sb, &options->templatePath);
+      StringBuilderAppendStringLiteral(sb, "'\n");
+
+      StringBuilderAppendStringLiteral(sb, "  ");
+      if (error == IO_ERROR_FILE_NOT_FOUND)
+        StringBuilderAppendStringLiteral(sb, "File not found");
+      else if (error == IO_ERROR_BUFFER_OUT_OF_MEMORY)
+        StringBuilderAppendStringLiteral(sb, "File is too big");
+      else if (error == IO_ERROR_PLATFORM)
+        StringBuilderAppendPlatformError(sb);
+
+      StringBuilderAppendStringLiteral(sb, "\n");
+      string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return -1;
+    }
+
+    if (IsStringNullOrEmpty(&template)) {
+      // file is not valid
+      StringBuilderAppendStringLiteral(sb, "Error: file is not valid");
+      string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return 1;
+    }
+  }
   // TODO: Write output to a file
 
   // Replace variables with values
