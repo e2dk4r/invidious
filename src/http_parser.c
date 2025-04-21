@@ -170,7 +170,6 @@ HttpTokenExtractString(struct http_token *token, struct string *httpResponse)
 internalfn b8
 HttpParse(struct http_parser *parser, struct string *httpResponse)
 {
-  enum http_parser_error lastError = parser->error;
   parser->error = HTTP_PARSER_ERROR_NONE;
 
   struct string *SP = &StringFromLiteral(" ");

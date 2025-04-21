@@ -878,7 +878,6 @@ StringSplit(struct string *string, struct string *separator, u64 *splitCount, st
   } else {
     u64 startIndex = 0;
     u64 splitIndex = 0;
-    u64 splitMax = *splitCount;
 
     for (u64 index = 0; index < string->length;) {
       struct string substring = StringFromBuffer(string->value + index, separator->length);
@@ -903,7 +902,7 @@ StringSplit(struct string *string, struct string *separator, u64 *splitCount, st
     if (lastSplit.length == 0)
       lastSplit.value = 0;
     *(splits + splitIndex) = lastSplit;
-    debug_assert(splitIndex + 1 == splitMax);
+    debug_assert(splitIndex + 1 == *splitCount);
   }
 
   return 1;

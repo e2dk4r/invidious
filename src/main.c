@@ -266,7 +266,6 @@ main(void)
   }
 
   // parse data as json
-  u32 breakHere = 1;
   struct json_parser *jsonParser = MakeJsonParser(&stackMemory, 4096);
   if (!JsonParse(jsonParser, &json)) {
     StringBuilderAppendStringLiteral(sb, "Json parser failed.");
