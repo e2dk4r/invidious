@@ -40,7 +40,7 @@ StringCursorExtractSubstring(struct string_cursor *cursor, u64 length)
 internalfn struct string
 StringCursorExtractConsumed(struct string_cursor *cursor)
 {
-  struct string substring = {};
+  struct string substring = {.value = 0, .length = 0};
   if (cursor->position == 0)
     return substring;
   substring = StringFromBuffer(cursor->source->value, cursor->position);
@@ -125,7 +125,7 @@ IsStringCursorRemainingEqual(struct string_cursor *cursor, struct string *search
 internalfn struct string
 StringCursorExtractUntil(struct string_cursor *cursor, struct string *search)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 index = 0;
@@ -161,7 +161,7 @@ StringCursorConsumeUntil(struct string_cursor *cursor, struct string *search)
 internalfn struct string
 StringCursorExtractThrough(struct string_cursor *cursor, struct string *search)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   struct string remaining = StringCursorExtractRemaining(cursor);
 
   u64 index = 0;
@@ -189,7 +189,7 @@ StringCursorExtractThrough(struct string_cursor *cursor, struct string *search)
 internalfn struct string
 StringCursorExtractNumber(struct string_cursor *cursor)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   struct string remaining = StringCursorExtractRemaining(cursor);
 
   b8 isFloat = 0;

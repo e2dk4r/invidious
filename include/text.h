@@ -37,7 +37,7 @@ static inline struct string
 StringFromZeroTerminated(u8 *src, u64 max)
 {
   debug_assert(src != 0);
-  struct string string = {};
+  struct string string = {.value = 0, .length = 0};
 
   string.value = src;
 
@@ -107,6 +107,12 @@ IsStringEqual(struct string *left, struct string *right)
   }
 
   return 1;
+}
+
+static inline b8
+IsStringNotEqual(struct string *left, struct string *right)
+{
+  return !IsStringEqual(left, right);
 }
 
 static u8
@@ -197,7 +203,7 @@ IsStringEndsWith(struct string *string, struct string *search)
 static struct string
 StringStripWhitespace(struct string *string)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   if (!string || string->length == 0)
     return result;
 
@@ -258,7 +264,7 @@ DurationAddRef(struct duration *duration, struct duration elapsed)
 }
 
 static inline struct duration
-__DurationAddMultiple(struct duration *list, u64 count)
+DurationAddList(struct duration *list, u64 count)
 {
   struct duration result = {.ns = 0};
   for (u64 index = 0; index < count; index++) {
@@ -269,8 +275,7 @@ __DurationAddMultiple(struct duration *list, u64 count)
 }
 
 #define DurationAddMultiple(...)                                                                                       \
-  __DurationAddMultiple((struct duration[]){__VA_ARGS__},                                                              \
-                        sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
+  DurationAddList((struct duration[]){__VA_ARGS__}, sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
 
 static inline void
 DurationSubRef(struct duration *duration, struct duration elapsed)
@@ -279,7 +284,7 @@ DurationSubRef(struct duration *duration, struct duration elapsed)
 }
 
 static inline struct duration
-__DurationSub(struct duration *list, u64 count)
+DurationSubList(struct duration *list, u64 count)
 {
   struct duration result = {.ns = 0};
   for (u64 index = 0; index < count; index++) {
@@ -290,8 +295,7 @@ __DurationSub(struct duration *list, u64 count)
 }
 
 #define DurationSubMultiple(...)                                                                                       \
-  __DurationSubMultiple((struct duration[]){__VA_ARGS__},                                                              \
-                        sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
+  DurationSubList((struct duration[]){__VA_ARGS__}, sizeof((struct duration[]){__VA_ARGS__}) / sizeof(struct duration))
 
 static inline struct duration
 DurationInNanoseconds(u64 nanoseconds)
@@ -409,7 +413,7 @@ ParseDuration(struct string *string, struct duration *duration)
     return 0;
   }
 
-  struct duration parsed = {};
+  struct duration parsed = {.ns = 0};
   u64 value = 0;
   for (u64 index = 0; index < string->length; index++) {
     u8 digitCharacter = string->value[index];
@@ -540,7 +544,7 @@ static inline struct string
 FormatU64(struct string *stringBuffer, u64 value)
 {
   // max 18446744073709551615
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   if (!stringBuffer || stringBuffer->length == 0)
     return result;
 
@@ -577,7 +581,7 @@ FormatU64(struct string *stringBuffer, u64 value)
 static inline struct string
 FormatS64(struct string *stringBuffer, s64 value)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   if (!stringBuffer || stringBuffer->length == 0)
     return result;
 
@@ -603,7 +607,7 @@ FormatF32Slow(struct string *stringBuffer, f32 value, u32 fractionCount)
 {
   debug_assert(fractionCount >= 1 && fractionCount <= 8);
 
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   if (!stringBuffer || stringBuffer->length < 3)
     return result;
 
@@ -754,7 +758,7 @@ ParseHex(struct string *string, u64 *value)
 static inline struct string
 FormatHex(struct string *stringBuffer, u64 value)
 {
-  struct string result = {};
+  struct string result = {.value = 0, .length = 0};
   if (!stringBuffer || stringBuffer->length < 2)
     return result;
 
@@ -802,7 +806,7 @@ FormatHex(struct string *stringBuffer, u64 value)
 static inline struct string
 PathGetDirectory(struct string *path)
 {
-  struct string directory = {};
+  struct string directory = {.value = 0, .length = 0};
 
   if (!path || !path->value || path->length == 0)
     return directory;

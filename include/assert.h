@@ -28,3 +28,8 @@
   if (!(x)) {                                                                                                          \
     __ASSERT__;                                                                                                        \
   }
+
+#define static_assert(expression)                                                                                      \
+  do {                                                                                                                 \
+    enum { STATIC_ASSERT__ = 1 / (expression) };                                                                       \
+  } while (0)

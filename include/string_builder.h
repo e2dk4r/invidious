@@ -55,7 +55,7 @@ static inline void
 StringBuilderAppendZeroTerminated(string_builder *stringBuilder, const char *src, u64 max)
 {
   struct string *outBuffer = stringBuilder->outBuffer;
-  struct string string = StringFromZeroTerminated((u8 *)src, max);
+  struct string string = StringFromZeroTerminated((u8 *)(u64)src, max);
   memcpy(outBuffer->value + stringBuilder->length, string.value, string.length);
   stringBuilder->length += string.length;
   debug_assert(stringBuilder->length <= outBuffer->length);
