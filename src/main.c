@@ -18,9 +18,6 @@
 #include "http_parser.c"
 #include "json_parser.c"
 
-comptime u64 KILOBYTES = 1 << 10;
-comptime u64 MEGABYTES = 1 << 20;
-
 struct invidious_context {
   // Socket
 
@@ -45,6 +42,11 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
 int
 main(void)
 {
+  enum {
+    KILOBYTES = (1 << 10),
+    MEGABYTES = (1 << 20),
+  };
+
   struct invidious_context context = {};
   u8 stackBuf[1 * MEGABYTES];
   memory_arena stackMemory = {
