@@ -168,7 +168,7 @@ main(void)
   u64 responseBufferMax = 256 * KILOBYTES;
   u8 *responseBuffer = MemoryArenaPush(&stackMemory, sizeof(*responseBuffer) * responseBufferMax);
   struct string response;
-  struct http_parser *httpParser = MakeHttpParser(&stackMemory, 16);
+  struct http_parser *httpParser = MakeHttpParser(&stackMemory, 32);
   {
     u64 totalBytesRead = 0;
     while (1) {
