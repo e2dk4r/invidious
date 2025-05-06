@@ -277,13 +277,26 @@ main(void)
     return 1;
   }
 
-  struct json_token *firstJsonToken = jsonParser->tokens + 0;
-  if (firstJsonToken->type != JSON_TOKEN_OBJECT) {
-    StringBuilderAppendStringLiteral(sb, "Got unexpected json from server");
-    StringBuilderAppendStringLiteral(sb, "\n");
-    struct string message = StringBuilderFlush(sb);
-    PrintString(&message);
-    return 1;
+  {
+    struct json_token *firstJsonToken = jsonParser->tokens + 0;
+    if (firstJsonToken->type != JSON_TOKEN_OBJECT) {
+      StringBuilderAppendStringLiteral(sb, "Got unexpected json from server");
+      StringBuilderAppendStringLiteral(sb, "\n");
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return 1;
+    }
+
+    // { "error": "message" }
+    if (jsonParser->tokenCount == 3) {
+      struct string field = JsonTokenExtractString(jsonParser->tokens + 1, &json);
+      struct string message;
+      if (IsStringEqual(&field, &StringFromLiteral("error")))
+        message = StringFromLiteral("Got invalid json from server\n");
+      message = JsonTokenExtractString(jsonParser->tokens + 2, &json);
+      PrintString(&message);
+      return 1;
+    }
   }
 
   for (u32 jsonTokenIndex = 1; jsonTokenIndex < jsonParser->tokenCount; jsonTokenIndex++) {
