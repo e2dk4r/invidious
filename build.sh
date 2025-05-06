@@ -7,7 +7,8 @@ export TZ=UTC
 IsBuildDebug=1
 IsBuildEnabled=1
 IsTestsEnabled=1
-IsToolsEnabled=1
+IsToolsEnabled=0
+IsBenchmarksEnabled=0
 
 PROJECT_NAME=invidious
 OUTPUT_NAME=$PROJECT_NAME
@@ -36,6 +37,9 @@ usage() {
 
     test
       Run tests.
+
+    bench
+      Run benchmarks.
 
     tools
       Build the tools
@@ -77,6 +81,11 @@ for i in "$@"; do
     test|tests)
       IsBuildEnabled=0
       IsTestsEnabled=1
+      ;;
+    bench)
+      IsBuildEnabled=0
+      IsTestsEnabled=1
+      IsBenchmarksEnabled=1
       ;;
     tools)
       IsToolsEnabled=1
