@@ -218,7 +218,7 @@ main(void)
   }
 
   if (response.length == responseBufferMax) {
-    StringBuilderAppendStringLiteral(sb, "Warning: response is truncated to ");
+    StringBuilderAppendStringLiteral(sb, "Server responded with too large file than we expected");
     StringBuilderAppendU64(sb, response.length);
     StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
