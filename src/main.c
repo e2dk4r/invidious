@@ -16,6 +16,7 @@
 #include "type.h"
 
 #include "http_parser.c"
+#include "json_parser.c"
 
 comptime u64 KILOBYTES = 1 << 10;
 comptime u64 MEGABYTES = 1 << 20;

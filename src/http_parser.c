@@ -28,7 +28,6 @@
  */
 
 #include "assert.h"
-#include "json_parser.c"
 #include "string_cursor.h"
 #include "text.h"
 #include "type.h"
