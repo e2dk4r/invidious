@@ -55,7 +55,7 @@ main(void)
   string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
 
   // hostname
-  struct string hostname = StringFromLiteral("inv.stealthy.club");
+  struct string hostname = StringFromLiteral("i.iii.st");
   // port
   struct string port = StringFromLiteral("443");
 
