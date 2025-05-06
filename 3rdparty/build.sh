@@ -3,10 +3,10 @@ if [ ! -d "$outputDir" ]; then
   mkdir "$outputDir" 
 fi
 
-MBEDTLS_VERSION=3.6.2
+MBEDTLS_VERSION=3.6.3
 MBEDTLS_DIR="$outputDir/mbedtls-$MBEDTLS_VERSION"
 MBEDTLS_SRC="$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
-MBEDTLS_SRC_B2SUM=dbf34ca3cffca7a9bdb10191bd58971583ae3f2cdef3e350ccda08eae2e7b52f5fd4d1aff5582ee120b6e35e6843d7dd323ba7da5f1428c16130e5ed7c0d689e
+MBEDTLS_SRC_B2SUM=8afccfd009260df81a64012f424bcaa4c1ac72e6865b93c3c9eba47533b1d51cfbb4a4417c9cc68cd8cf77024db946bee19c347b0b040883907482c475d077b9
 
 Log "Mbed TLS:"
 Log "  Version: $MBEDTLS_VERSION"
