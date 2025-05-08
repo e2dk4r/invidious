@@ -39,6 +39,91 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
   StringBuilderAppendZeroTerminated(sb, buf, 1024);
 }
 
+internalfn inline void
+StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error errorCode)
+{
+  struct error {
+    enum http_parser_error code;
+    struct string message;
+  } errors[] = {
+      {
+          .code = HTTP_PARSER_ERROR_NONE,
+          .message = StringFromLiteral("No error"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_OUT_OF_MEMORY,
+          .message = StringFromLiteral("Tokens are not enough"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID,
+          .message = StringFromLiteral("Http version is invalid"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
+          .message = StringFromLiteral("Expected server to be HTTP 1.1"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
+          .message = StringFromLiteral("Http status code is invalid"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER,
+          .message = StringFromLiteral("Http status code must be 3 digits"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999,
+          .message = StringFromLiteral("Http status code must be between 100 and 999"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_REASON_PHRASE_INVALID,
+          .message = StringFromLiteral("Http reason phrase is invalid"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED,
+          .message = StringFromLiteral("Http header field name required"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED,
+          .message = StringFromLiteral("Http header field value required"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER,
+          .message = StringFromLiteral("Http content length must be positive number"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING,
+          .message = StringFromLiteral("Transfer encoding is unsupported"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID,
+          .message = StringFromLiteral("Chunk size is invalid"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED,
+          .message = StringFromLiteral("Chunk data is malformed"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH,
+          .message = StringFromLiteral("Content is not matching with specified"),
+      },
+      {
+          .code = HTTP_PARSER_ERROR_PARTIAL,
+          .message = StringFromLiteral("Partial http"),
+      },
+  };
+
+  StringBuilderAppendStringLiteral(sb, "HttpParser: ");
+  struct string message = StringFromLiteral("Unknown error");
+  for (u32 errorIndex = 0; errorIndex < ARRAY_COUNT(errors); errorIndex++) {
+    struct error *error = errors + errorIndex;
+    if (error->code == errorCode) {
+      message = error->message;
+      break;
+    }
+  }
+  StringBuilderAppendString(sb, &message);
+}
+
 int
 main(void)
 {
@@ -205,7 +290,7 @@ main(void)
       if (httpParser->error != HTTP_PARSER_ERROR_PARTIAL) {
         StringBuilderAppendStringLiteral(sb, "Http parser failed.");
         StringBuilderAppendStringLiteral(sb, "\n     error: ");
-        StringBuilderAppendU64(sb, (u64)httpParser->error);
+        StringBuilderAppendHttpParserError(sb, httpParser->error);
         StringBuilderAppendStringLiteral(sb, "\n  position: ");
         StringBuilderAppendU64(sb, httpParser->position);
         StringBuilderAppendStringLiteral(sb, "\n");
