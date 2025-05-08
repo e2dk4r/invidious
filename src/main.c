@@ -31,7 +31,7 @@ struct invidious_context {
   mbedtls_entropy_context entropy;
 };
 
-static inline void
+internalfn inline void
 StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
 {
   char buf[1024];
