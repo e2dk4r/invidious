@@ -40,6 +40,47 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
 }
 
 internalfn inline void
+StringBuilderAppendHumanReadableBytes(string_builder *sb, u64 bytes)
+{
+  enum {
+    TERABYTES = (1UL << 40),
+    GIGABYTES = (1UL << 30),
+    MEGABYTES = (1UL << 20),
+    KILOBYTES = (1UL << 10),
+  };
+
+  struct order {
+    u64 magnitude;
+    struct string unit;
+  } orders[] = {
+      // order is important, bigger one first
+      {.magnitude = TERABYTES, .unit = StringFromLiteral("TiB")},
+      {.magnitude = GIGABYTES, .unit = StringFromLiteral("GiB")},
+      {.magnitude = MEGABYTES, .unit = StringFromLiteral("MiB")},
+      {.magnitude = KILOBYTES, .unit = StringFromLiteral("KiB")},
+      {.magnitude = 1, .unit = StringFromLiteral("B")},
+  };
+
+  if (bytes == 0) {
+    StringBuilderAppendStringLiteral(sb, "0");
+    return;
+  }
+
+  for (u32 orderIndex = 0; orderIndex < ARRAY_COUNT(orders); orderIndex++) {
+    struct order *order = orders + orderIndex;
+    if (bytes >= order->magnitude) {
+      u64 value = bytes / order->magnitude;
+      bytes -= value * order->magnitude;
+
+      StringBuilderAppendU64(sb, value);
+      StringBuilderAppendString(sb, &order->unit);
+      if (bytes != 0)
+        StringBuilderAppendStringLiteral(sb, " ");
+    }
+  }
+}
+
+internalfn inline void
 StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error errorCode)
 {
   struct error {
@@ -439,6 +480,23 @@ main(void)
       jsonTokenIndex++;
     }
   }
+
+#if IS_BUILD_DEBUG
+  {
+    StringBuilderAppendStringLiteral(sb, "Memory total:  ");
+    StringBuilderAppendHumanReadableBytes(sb, stackMemory.total);
+    StringBuilderAppendStringLiteral(sb, "\n");
+    StringBuilderAppendStringLiteral(sb, "Memory used:   ");
+    StringBuilderAppendHumanReadableBytes(sb, stackMemory.used);
+    StringBuilderAppendStringLiteral(sb, "\n");
+    StringBuilderAppendStringLiteral(sb, "Memory wasted: ");
+    StringBuilderAppendHumanReadableBytes(sb, stackMemory.total - stackMemory.used);
+    StringBuilderAppendStringLiteral(sb, "\n");
+
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
+  }
+#endif
 
   return 0;
 }
