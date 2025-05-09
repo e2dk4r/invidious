@@ -35,6 +35,10 @@ usage() {
     --disable-$PROJECT_NAME
       Do not build $PROJECT_NAME binary.
 
+    --force-build-mbedtls
+      Rebuild even if mbedtls compiled before.
+      e.g. 3rdparty/mbedtls_config.h changed so recompile is needed
+
     test
       Run tests.
 
