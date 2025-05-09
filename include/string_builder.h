@@ -105,8 +105,10 @@ StringBuilderAppendU32(string_builder *stringBuilder, u32 value)
 static inline void
 StringBuilderAppendS64(string_builder *stringBuilder, s64 value)
 {
-  if (value < 0)
+  if (value < 0) {
     StringBuilderAppendStringLiteral(stringBuilder, "-");
+    value *= -1;
+  }
   StringBuilderAppendU64(stringBuilder, (u64)value);
 }
 
