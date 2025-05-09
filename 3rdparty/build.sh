@@ -1,6 +1,7 @@
+pwd="$ProjectRoot/3rdparty"
 outputDir="$OutputDir/3rdparty"
 if [ ! -d "$outputDir" ]; then
-  mkdir "$outputDir" 
+  mkdir "$outputDir"
 fi
 
 MBEDTLS_VERSION=3.6.3
@@ -30,14 +31,19 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
     exit 1
   fi
 
-  StartTimer
-  tar -C "$outputDir" -xf "$MBEDTLS_SRC"
-  Log "  Extracted in $(StopTimer) seconds"
+  if [ ! -d "$MBEDTLS_DIR" ]; then
+    StartTimer
+    tar -C "$outputDir" -xf "$MBEDTLS_SRC"
+    Log "  Extracted in $(StopTimer) seconds"
+  fi
 
-  # TODO: Configure Mbed TLS
+  # TODO:
+  # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/reduce-polarssl-memory-and-storage-footprint/
+
+  # copy config
   # https://mbed-tls.readthedocs.io/en/latest/kb/compiling-and-building/how-do-i-configure-mbedtls/
   # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/using-static-memory-instead-of-the-heap/
-  # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/reduce-polarssl-memory-and-storage-footprint/
+  cp "$pwd/mbedtls_config.h" "$MBEDTLS_DIR/include/mbedtls/mbedtls_config.h"
 
   # README.md > ### CMake
   mbedtlsBuildType="Debug"
@@ -51,7 +57,7 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
   Log "  Configured in $(StopTimer) seconds"
 
   StartTimer
-  ninja -C "$MBEDTLS_DIR/build" install 
+  ninja -C "$MBEDTLS_DIR/build" install
   Log "  Built in $(StopTimer) seconds"
 fi
 

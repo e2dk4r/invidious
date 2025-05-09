@@ -6,7 +6,7 @@
 // for example usage see mbedtls/programs/ssl/ssl_client2.c
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
-#include <mbedtls/error.h>
+#include <mbedtls/memory_buffer_alloc.h>
 #include <mbedtls/net_sockets.h>
 
 #include "memory.h"
@@ -17,6 +17,7 @@
 
 #include "http_parser.c"
 #include "json_parser.c"
+#include "platform.h"
 
 struct invidious_context {
   // Socket
@@ -27,147 +28,12 @@ struct invidious_context {
 
   mbedtls_ssl_context ssl;
   mbedtls_ssl_config sslConfig;
+  mbedtls_x509_crt cacert;
   mbedtls_ctr_drbg_context ctrDrbg;
   mbedtls_entropy_context entropy;
 };
 
-internalfn inline void
-StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
-{
-  char buf[1024];
-  mbedtls_strerror(errnum, buf, ARRAY_COUNT(buf));
-  StringBuilderAppendZeroTerminated(sb, buf, 1024);
-
-  StringBuilderAppendStringLiteral(sb, " (errnum ");
-  StringBuilderAppendS64(sb, errnum);
-  StringBuilderAppendStringLiteral(sb, ")");
-}
-
-internalfn inline void
-StringBuilderAppendHumanReadableBytes(string_builder *sb, u64 bytes)
-{
-  enum {
-    TERABYTES = (1UL << 40),
-    GIGABYTES = (1UL << 30),
-    MEGABYTES = (1UL << 20),
-    KILOBYTES = (1UL << 10),
-  };
-
-  struct order {
-    u64 magnitude;
-    struct string unit;
-  } orders[] = {
-      // order is important, bigger one first
-      {.magnitude = TERABYTES, .unit = StringFromLiteral("TiB")},
-      {.magnitude = GIGABYTES, .unit = StringFromLiteral("GiB")},
-      {.magnitude = MEGABYTES, .unit = StringFromLiteral("MiB")},
-      {.magnitude = KILOBYTES, .unit = StringFromLiteral("KiB")},
-      {.magnitude = 1, .unit = StringFromLiteral("B")},
-  };
-
-  if (bytes == 0) {
-    StringBuilderAppendStringLiteral(sb, "0");
-    return;
-  }
-
-  for (u32 orderIndex = 0; orderIndex < ARRAY_COUNT(orders); orderIndex++) {
-    struct order *order = orders + orderIndex;
-    if (bytes >= order->magnitude) {
-      u64 value = bytes / order->magnitude;
-      bytes -= value * order->magnitude;
-
-      StringBuilderAppendU64(sb, value);
-      StringBuilderAppendString(sb, &order->unit);
-      if (bytes != 0)
-        StringBuilderAppendStringLiteral(sb, " ");
-    }
-  }
-}
-
-internalfn inline void
-StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error errorCode)
-{
-  struct error {
-    enum http_parser_error code;
-    struct string message;
-  } errors[] = {
-      {
-          .code = HTTP_PARSER_ERROR_NONE,
-          .message = StringFromLiteral("No error"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_OUT_OF_MEMORY,
-          .message = StringFromLiteral("Tokens are not enough"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_HTTP_VERSION_INVALID,
-          .message = StringFromLiteral("Http version is invalid"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
-          .message = StringFromLiteral("Expected server to be HTTP 1.1"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
-          .message = StringFromLiteral("Http status code is invalid"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER,
-          .message = StringFromLiteral("Http status code must be 3 digits"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_BETWEEN_100_AND_999,
-          .message = StringFromLiteral("Http status code must be between 100 and 999"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_REASON_PHRASE_INVALID,
-          .message = StringFromLiteral("Http reason phrase is invalid"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_HEADER_FIELD_NAME_REQUIRED,
-          .message = StringFromLiteral("Http header field name required"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_HEADER_FIELD_VALUE_REQUIRED,
-          .message = StringFromLiteral("Http header field value required"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_CONTENT_LENGTH_EXPECTED_POSITIVE_NUMBER,
-          .message = StringFromLiteral("Http content length must be positive number"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_UNSUPPORTED_TRANSFER_ENCODING,
-          .message = StringFromLiteral("Transfer encoding is unsupported"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_CHUNK_SIZE_IS_INVALID,
-          .message = StringFromLiteral("Chunk size is invalid"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_CHUNK_DATA_MALFORMED,
-          .message = StringFromLiteral("Chunk data is malformed"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_CONTENT_INVALID_LENGTH,
-          .message = StringFromLiteral("Content is not matching with specified"),
-      },
-      {
-          .code = HTTP_PARSER_ERROR_PARTIAL,
-          .message = StringFromLiteral("Partial http"),
-      },
-  };
-
-  StringBuilderAppendStringLiteral(sb, "HttpParser: ");
-  struct string message = StringFromLiteral("Unknown error");
-  for (u32 errorIndex = 0; errorIndex < ARRAY_COUNT(errors); errorIndex++) {
-    struct error *error = errors + errorIndex;
-    if (error->code == errorCode) {
-      message = error->message;
-      break;
-    }
-  }
-  StringBuilderAppendString(sb, &message);
-}
+#include "string_builder_extended.c"
 
 int
 main(void)
@@ -178,7 +44,7 @@ main(void)
   };
 
   struct invidious_context context = {};
-  u8 stackBuf[1 * MEGABYTES];
+  u8 stackBuf[2 * MEGABYTES];
   memory_arena stackMemory = {
       .block = stackBuf,
       .total = ARRAY_COUNT(stackBuf),
@@ -190,6 +56,8 @@ main(void)
   struct string hostname = StringFromLiteral("i.iii.st");
   // port
   struct string port = StringFromLiteral("443");
+  // video id
+  struct string videoId = StringFromLiteral("d_oVysaqG_0");
 
   // Socket
   context.sockfd = -1;
@@ -226,29 +94,103 @@ main(void)
   }
 
   // Mbed TLS Setup
+  int mbedtlsError;
+  enum { MBEDTLS_ALLOCATED_MEMORY = 512 * KILOBYTES };
+  mbedtls_memory_buffer_alloc_init(MemoryArenaPush(&stackMemory, MBEDTLS_ALLOCATED_MEMORY), MBEDTLS_ALLOCATED_MEMORY);
+
   mbedtls_ssl_init(&context.ssl);
   mbedtls_ssl_config_init(&context.sslConfig);
+  mbedtls_x509_crt_init(&context.cacert);
   mbedtls_ctr_drbg_init(&context.ctrDrbg);
   mbedtls_entropy_init(&context.entropy);
+  psa_crypto_init();
 
-  if (mbedtls_ctr_drbg_seed(&context.ctrDrbg, mbedtls_entropy_func, &context.entropy, 0, 0)) {
+  // Load system CA
+  {
+    memory_temp tempMemory = MemoryTempBegin(&stackMemory);
+
+    struct string systemCAPath = StringFromLiteral("/etc/ssl/certs/ca-certificates.crt");
+    u64 systemCALength = PlatformFileSize(&systemCAPath);
+    if (systemCALength == 0) {
+      StringBuilderAppendStringLiteral(sb, "CA certificates not found or invalid on system.");
+      StringBuilderAppendStringLiteral(sb, "\n  Path: ");
+      StringBuilderAppendString(sb, &systemCAPath);
+      StringBuilderAppendStringLiteral(sb, "\n");
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return 1;
+    }
+
+    systemCALength += 1; // zero-termination
+    struct string buffer = {
+        .length = systemCALength,
+        .value = MemoryArenaPushAligned(tempMemory.arena, systemCALength, 32),
+    };
+
+    struct string systemCA = PlatformReadFile(&buffer, &systemCAPath);
+    if (IsStringNullOrEmpty(&systemCA)) {
+      StringBuilderAppendStringLiteral(sb, "Reading CA certificates from system failed.");
+      StringBuilderAppendStringLiteral(sb, "\n");
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return 1;
+    }
+
+    systemCA = StringStripWhitespace(&systemCA);
+    // mbedtls_x509_crt_parse expectes zero-terminated
+    systemCA.value[systemCA.length] = 0;
+    systemCA.length += 1;
+
+    mbedtlsError = mbedtls_x509_crt_parse(&context.cacert, systemCA.value, systemCA.length);
+    if (mbedtlsError < 0) {
+      StringBuilderAppendStringLiteral(sb, "Failed to parse CA cert.");
+      StringBuilderAppendStringLiteral(sb, "\n");
+      StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+      StringBuilderAppendStringLiteral(sb, "\n");
+      struct string message = StringBuilderFlush(sb);
+      PrintString(&message);
+      return 1;
+    }
+
+    MemoryTempEnd(&tempMemory);
+  }
+
+  // Seed RNG
+  mbedtlsError = mbedtls_ctr_drbg_seed(&context.ctrDrbg, mbedtls_entropy_func, &context.entropy, 0, 0);
+  if (mbedtlsError != 0) {
+    StringBuilderAppendStringLiteral(sb, "Entropy seed failed.");
+    StringBuilderAppendStringLiteral(sb, "\n");
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
     return 1;
   }
 
   if (mbedtls_ssl_config_defaults(&context.sslConfig, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
                                   MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
+    StringBuilderAppendStringLiteral(sb, "SSL configuration failed.");
+    StringBuilderAppendStringLiteral(sb, "\n");
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
     return 1;
   }
 
-  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
+  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+  mbedtls_ssl_conf_ca_chain(&context.sslConfig, &context.cacert, NULL);
   mbedtls_ssl_conf_rng(&context.sslConfig, mbedtls_ctr_drbg_random, &context.ctrDrbg);
-  mbedtls_ssl_setup(&context.ssl, &context.sslConfig);
+  if (mbedtls_ssl_setup(&context.ssl, &context.sslConfig) != 0) {
+    PrintString(&StringFromLiteral(""));
+    StringBuilderAppendStringLiteral(sb, "SSL setup failed.");
+    StringBuilderAppendStringLiteral(sb, "\n");
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
+    return 1;
+  }
 
   // Attach Mbed TLS to unix socket
   mbedtls_ssl_set_bio(&context.ssl, &context.sockfd, mbedtls_net_send, mbedtls_net_recv, 0);
-  int mbedtlsError;
   mbedtlsError = mbedtls_ssl_handshake(&context.ssl);
   if (mbedtlsError) {
+    u32 breakHere = 1;
     StringBuilderAppendStringLiteral(sb, "TLS handshake failed.\n");
     StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
     StringBuilderAppendMbedtlsError(sb, mbedtlsError);
@@ -259,19 +201,29 @@ main(void)
   }
 
   // Send an HTTP Request
-  StringBuilderAppendStringLiteral(sb, "GET ");
-  StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
-  struct string videoId = StringFromLiteral("d_oVysaqG_0");
-  StringBuilderAppendString(sb, &videoId);
-  StringBuilderAppendStringLiteral(sb, " HTTP/1.1");
-  StringBuilderAppendStringLiteral(sb, "\r\n");
-  StringBuilderAppendStringLiteral(sb, "host: ");
-  StringBuilderAppendString(sb, &hostname);
-  StringBuilderAppendStringLiteral(sb, "\r\n");
-  StringBuilderAppendStringLiteral(sb, "\r\n");
-  struct string request = StringBuilderFlush(sb);
-
   {
+    // memory_temp tempMemory = MemoryTempBegin(&stackMemory);
+    // struct http_request_builder *hrb = MakeHttpRequestBuilder(tempMemory.arena);
+    // HttpRequestMethod(hrb, HTTP_METHOD_GET);
+    // HttpRequestVersion(hrb, HTTP_VERSION_1_1);
+    // HttpRequestPath(hrb, "/api/v1/videos/");
+    // HttpRequestPathAppend(hrb, &videoId);
+    // HttpRequestHost(hrb, &hostname);
+    // HttpRequestAccept(hrb, &StringFromLiteral("application/json"));
+    // struct string httpRequest = HttpRequestBuild(hrb);
+
+    u32 breakHere = 1;
+    StringBuilderAppendStringLiteral(sb, "GET ");
+    StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
+    StringBuilderAppendString(sb, &videoId);
+    StringBuilderAppendStringLiteral(sb, " HTTP/1.1");
+    StringBuilderAppendStringLiteral(sb, "\r\n");
+    StringBuilderAppendStringLiteral(sb, "host: ");
+    StringBuilderAppendString(sb, &hostname);
+    StringBuilderAppendStringLiteral(sb, "\r\n");
+    StringBuilderAppendStringLiteral(sb, "\r\n");
+    struct string request = StringBuilderFlush(sb);
+
     u64 totalBytesWritten = 0;
     while (1) {
       int ret = mbedtls_ssl_write(&context.ssl, request.value + totalBytesWritten, request.length - totalBytesWritten);
@@ -295,6 +247,8 @@ main(void)
       if (totalBytesWritten == request.length)
         break;
     }
+
+    // MemoryTempEnd(&tempMemory);
   }
 
   // Recieve a HTTP Response and parse it
