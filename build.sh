@@ -39,6 +39,17 @@ usage() {
       Rebuild even if mbedtls compiled before.
       e.g. 3rdparty/mbedtls_config.h changed so recompile is needed
 
+    TLS LIBRARY
+      Only one option is required.
+      --with-mbedtls
+        Choose Mbed TLS as TLS library
+        https://github.com/Mbed-TLS/mbedtls
+
+      --with-wolfssl
+        *Default option*
+        Choose wolfSSL as TLS library
+        https://github.com/wolfSSL/wolfssl
+
     test
       Run tests.
 
@@ -60,6 +71,8 @@ usage() {
 EOF
 }
 
+WITH_MBEDTLS=0
+WITH_WOLFSSL=0
 FORCE_BUILD_MBEDTLS=0
 for i in "$@"; do
   case $i in
@@ -78,6 +91,12 @@ for i in "$@"; do
       ;;
     --disable-test|--disable-tests)
       IsTestsEnabled=0
+      ;;
+    --with-mbedtls)
+      WITH_MBEDTLS=1
+      ;;
+    --with-wolfssl)
+      WITH_WOLFSSL=1
       ;;
     --force-build-mbedtls)
       FORCE_BUILD_MBEDTLS=1
@@ -105,6 +124,11 @@ for i in "$@"; do
       ;;
   esac
 done
+
+# default TLS library
+if [ $(( $WITH_MBEDTLS + $WITH_WOLFSSL )) -eq 0 ]; then
+  WITH_WOLFSSL=1
+fi
 
 ################################################################
 # UTILITY FUNCTIONS
@@ -325,6 +349,7 @@ if [ "$(pwd)" != "$ProjectRoot" ]; then
   echo "  $ProjectRoot"
   exit 1
 fi
+trap "cd '$ProjectRoot'" EXIT
 
 OutputDir="${OutputDir:-$ProjectRoot/build}"
 if [ ! -e "$OutputDir" ]; then
@@ -441,13 +466,20 @@ if [ $IsBuildEnabled -eq 1 ]; then
     #INC_MBEDTLS="-Ibuild/3rdparty/mbedtls-$MBEDTLS_VERSION-install/include"
     #LIB_MBEDTLS="-Lbuild/3rdparty/mbedtls-$MBEDTLS_VERSION-install/lib64 -lmbedtls -lmbedx509 -lmbedcrypto"
     . "$ProjectRoot/3rdparty/build.sh"
+    LIB_M='-lm'
 
     src="$ProjectRoot/src/main.c"
     output="$OutputDir/$OUTPUT_NAME"
     inc="-I$ProjectRoot/include $INC_MBEDTLS"
     lib="$LIB_MBEDTLS"
+    if [ $WITH_WOLFSSL -eq  1 ]; then 
+      src="$ProjectRoot/src/main_wolfssl.c"
+      inc="-I$ProjectRoot/include $INC_WOLFSSL"
+      lib="$LIB_WOLFSSL $LIB_M"
+    fi
     StartTimer
-    if "$cc"  $cflags $ldflags $inc -o "$output" $src $lib; then
+    echo "$cc" $cflags $ldflags $inc -o "$output" $src $lib
+    if "$cc" $cflags $ldflags $inc -o "$output" $src $lib; then
       echo "$OUTPUT_NAME compiled in $(StopTimer) seconds."
     fi
   else
@@ -472,7 +504,10 @@ Log "Finished at $(date '+%Y-%m-%d %H:%M:%S')"
 
 if [ $(command -v ctags) ] && [ ! -e tags ] && [ $IsBuildDebug -eq 1 ]; then
   src=""
-  for file in "$OutputDir/3rdparty/mbedtls-$MBEDTLS_VERSION-install/include/mbedtls/*.h"; do
+  for file in                                                                  \
+    "$OutputDir/3rdparty/mbedtls-$MBEDTLS_VERSION-install/include/mbedtls/*.h" \
+    "$OutputDir/3rdparty/wolfssl-$WOLFSSL_VERSION-install/include/wolfssl/*.h"
+  do
     src="$src $file"
   done
 

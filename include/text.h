@@ -12,6 +12,12 @@ struct string {
 
 typedef struct string string;
 
+static inline struct string
+StringNull(void)
+{
+  return (struct string){.value = 0, .length = 0};
+}
+
 /*
  * Only accepts readonly, compile-time C strings.
  * Do NOT pass char
@@ -57,6 +63,15 @@ MakeString(memory_arena *arena, u64 length)
   struct string *result = MemoryArenaPush(arena, sizeof(*result));
   result->length = length;
   result->value = MemoryArenaPush(arena, result->length);
+  return result;
+}
+
+static inline struct string *
+MakeStringAligned(memory_arena *arena, u64 length, u64 alignment)
+{
+  struct string *result = MemoryArenaPush(arena, sizeof(*result));
+  result->length = length;
+  result->value = MemoryArenaPushAligned(arena, result->length, alignment);
   return result;
 }
 

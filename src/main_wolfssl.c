@@ -3,11 +3,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// for example usage see mbedtls/programs/ssl/ssl_client2.c
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/entropy.h>
-#include <mbedtls/memory_buffer_alloc.h>
-#include <mbedtls/net_sockets.h>
+#include <wolfssl/options.h>
+#include <wolfssl/ssl.h>
 
 #include "memory.h"
 #include "print.h"
@@ -24,19 +21,16 @@ struct invidious_context {
 
   int sockfd;
 
-  // Mbed TLS
-
-  mbedtls_ssl_context ssl;
-  mbedtls_ssl_config sslConfig;
-  mbedtls_x509_crt cacert;
-  mbedtls_ctr_drbg_context ctrDrbg;
-  mbedtls_entropy_context entropy;
+  struct {
+    WOLFSSL_CTX *ctx;
+    WOLFSSL *ssl;
+  } wolfSSL;
 };
 
 #include "string_builder_extended.c"
 
 int
-main(int argc, char *argv[])
+main(void)
 {
   enum {
     KILOBYTES = (1 << 10),
@@ -93,20 +87,21 @@ main(int argc, char *argv[])
     context.sockfd = sockfd;
   }
 
-  // Mbed TLS Setup
-  int mbedtlsError;
-  enum { MBEDTLS_ALLOCATED_MEMORY = 512 * KILOBYTES };
-  mbedtls_memory_buffer_alloc_init(MemoryArenaPush(&stackMemory, MBEDTLS_ALLOCATED_MEMORY), MBEDTLS_ALLOCATED_MEMORY);
+  // wolfSSL Setup
+  int wolfsslError;
+  // enum { WOLFSSL_ALLOCATED_MEMORY = 512 * KILOBYTES };
+  // wolfssl buffer init (MemoryArenaPush(&stackMemory, WOLFSSL_ALLOCATED_MEMORY), WOLFSSL_ALLOCATED_MEMORY);
 
-  mbedtls_ssl_init(&context.ssl);
-  mbedtls_ssl_config_init(&context.sslConfig);
-  mbedtls_x509_crt_init(&context.cacert);
-  mbedtls_ctr_drbg_init(&context.ctrDrbg);
-  mbedtls_entropy_init(&context.entropy);
-  psa_crypto_init();
+  wolfSSL_Init();
+  context.wolfSSL.ctx = wolfSSL_CTX_new(wolfTLSv1_3_client_method());
+  if (!context.wolfSSL.ctx) {
+    struct string message = StringFromLiteral("wolfSSL_CTX_new\n");
+    PrintString(&message);
+    return 1;
+  }
 
-  // Load system CA
-  if (0) {
+  // - Load system CA
+  {
     memory_temp tempMemory = MemoryTempBegin(&stackMemory);
 
     struct string systemCAPath = StringFromLiteral("/etc/ssl/certs/ca-certificates.crt");
@@ -121,7 +116,6 @@ main(int argc, char *argv[])
       return 1;
     }
 
-    systemCALength += 1; // zero-termination
     struct string buffer = {
         .length = systemCALength,
         .value = MemoryArenaPushAligned(tempMemory.arena, systemCALength, 32),
@@ -138,14 +132,15 @@ main(int argc, char *argv[])
 
     systemCA = StringStripWhitespace(&systemCA);
     // mbedtls_x509_crt_parse expectes zero-terminated
-    systemCA.value[systemCA.length] = 0;
-    systemCA.length += 1;
+    // systemCA.value[systemCA.length] = 0;
+    // systemCA.length += 1;
 
-    mbedtlsError = mbedtls_x509_crt_parse(&context.cacert, systemCA.value, systemCA.length);
-    if (mbedtlsError < 0) {
+    wolfsslError =
+        wolfSSL_CTX_load_verify_buffer(context.wolfSSL.ctx, systemCA.value, (s64)systemCA.length, WOLFSSL_FILETYPE_PEM);
+    if (wolfsslError != WOLFSSL_SUCCESS) {
       StringBuilderAppendStringLiteral(sb, "Failed to parse CA cert.");
       StringBuilderAppendStringLiteral(sb, "\n");
-      StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+      // StringBuilderAppendWolfsslError(sb, wolfsslError);
       StringBuilderAppendStringLiteral(sb, "\n");
       struct string message = StringBuilderFlush(sb);
       PrintString(&message);
@@ -155,49 +150,24 @@ main(int argc, char *argv[])
     MemoryTempEnd(&tempMemory);
   }
 
-  // Seed RNG
-  mbedtlsError = mbedtls_ctr_drbg_seed(&context.ctrDrbg, mbedtls_entropy_func, &context.entropy, 0, 0);
-  if (mbedtlsError != 0) {
-    StringBuilderAppendStringLiteral(sb, "Entropy seed failed.");
-    StringBuilderAppendStringLiteral(sb, "\n");
-    struct string message = StringBuilderFlush(sb);
-    PrintString(&message);
-    return 1;
-  }
-
-  if (mbedtls_ssl_config_defaults(&context.sslConfig, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
-                                  MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
-    StringBuilderAppendStringLiteral(sb, "SSL configuration failed.");
-    StringBuilderAppendStringLiteral(sb, "\n");
-    struct string message = StringBuilderFlush(sb);
-    PrintString(&message);
-    return 1;
-  }
-
-#if 1 && IS_BUILD_DEBUG
-  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
-#else
-  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
-  mbedtls_ssl_conf_ca_chain(&context.sslConfig, &context.cacert, NULL);
+  // - WOLFSSL Object
+#if 0 && IS_DEBUG_BUILD
+  wolfSSL_CTX_set_verify(context.wolfSSL.ctx, SSL_VERIFY_NONE, 0);
 #endif
-  mbedtls_ssl_conf_rng(&context.sslConfig, mbedtls_ctr_drbg_random, &context.ctrDrbg);
-  if (mbedtls_ssl_setup(&context.ssl, &context.sslConfig) != 0) {
-    PrintString(&StringFromLiteral(""));
-    StringBuilderAppendStringLiteral(sb, "SSL setup failed.");
-    StringBuilderAppendStringLiteral(sb, "\n");
-    struct string message = StringBuilderFlush(sb);
+  context.wolfSSL.ssl = wolfSSL_new(context.wolfSSL.ctx);
+  if (!context.wolfSSL.ssl) {
+    struct string message = StringFromLiteral("wolfSSL_new()\n");
     PrintString(&message);
     return 1;
   }
 
-  // Attach Mbed TLS to unix socket
-  mbedtls_ssl_set_bio(&context.ssl, &context.sockfd, mbedtls_net_send, mbedtls_net_recv, 0);
-  mbedtlsError = mbedtls_ssl_handshake(&context.ssl);
-  if (mbedtlsError) {
-    u32 breakHere = 1;
+  // - Attach unix socket to WOLFSSL object
+  wolfSSL_set_fd(context.wolfSSL.ssl, context.sockfd);
+  wolfsslError = wolfSSL_connect(context.wolfSSL.ssl);
+  if (wolfsslError != WOLFSSL_SUCCESS) {
     StringBuilderAppendStringLiteral(sb, "TLS handshake failed.\n");
-    StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
-    StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+    StringBuilderAppendStringLiteral(sb, "  wolfSSL error: ");
+    // StringBuilderAppendMbedtlsError(sb, mbedtlsError);
     StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
@@ -216,7 +186,6 @@ main(int argc, char *argv[])
     // HttpRequestAccept(hrb, &StringFromLiteral("application/json"));
     // struct string httpRequest = HttpRequestBuild(hrb);
 
-    u32 breakHere = 1;
     StringBuilderAppendStringLiteral(sb, "GET ");
     StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
     StringBuilderAppendString(sb, &videoId);
@@ -230,16 +199,16 @@ main(int argc, char *argv[])
 
     u64 totalBytesWritten = 0;
     while (1) {
-      int ret = mbedtls_ssl_write(&context.ssl, request.value + totalBytesWritten, request.length - totalBytesWritten);
+      // https://www.wolfssl.com/documentation/manuals/wolfssl/group__IO.html#function-wolfssl_write
+      int ret = wolfSSL_write(context.wolfSSL.ssl, request.value + totalBytesWritten,
+                              (int)(request.length - totalBytesWritten));
       if (ret < 0) {
-        mbedtlsError = ret;
-        if (mbedtlsError == MBEDTLS_ERR_SSL_WANT_READ || mbedtlsError == MBEDTLS_ERR_SSL_WANT_WRITE ||
-            mbedtlsError == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS) {
+        wolfsslError = wolfSSL_get_error(context.wolfSSL.ssl, ret);
+        if (wolfsslError == WOLFSSL_ERROR_WANT_READ || wolfsslError == WOLFSSL_ERROR_WANT_WRITE)
           continue;
-        }
 
-        StringBuilderAppendStringLiteral(sb, "Mbed TLS write error: ");
-        StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+        StringBuilderAppendStringLiteral(sb, "wolfSSL write error: ");
+        // StringBuilderAppendMbedtlsError(sb, mbedtlsError);
         StringBuilderAppendStringLiteral(sb, "\n");
         struct string message = StringBuilderFlush(sb);
         PrintString(&message);
@@ -263,19 +232,16 @@ main(int argc, char *argv[])
   {
     u64 totalBytesRead = 0;
     while (1) {
-      int ret = mbedtls_ssl_read(&context.ssl, responseBuffer + totalBytesRead, responseBufferMax - totalBytesRead);
+      // https://www.wolfssl.com/documentation/manuals/wolfssl/group__IO.html#function-wolfssl_read
+      int ret =
+          wolfSSL_read(context.wolfSSL.ssl, responseBuffer + totalBytesRead, (int)(responseBufferMax - totalBytesRead));
       if (ret < 0) {
-        mbedtlsError = ret;
-        if (mbedtlsError == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
-          break;
-        if (mbedtlsError == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS)
-          continue;
-        if (mbedtlsError == MBEDTLS_ERR_SSL_WANT_READ || mbedtlsError == MBEDTLS_ERR_SSL_WANT_WRITE)
+        wolfsslError = wolfSSL_get_error(context.wolfSSL.ssl, ret);
+        if (wolfsslError == WOLFSSL_ERROR_WANT_READ || wolfsslError == WOLFSSL_ERROR_WANT_WRITE)
           continue;
 
         StringBuilderAppendStringLiteral(sb, "TLS read failed.\n");
-        StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
-        StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+        StringBuilderAppendStringLiteral(sb, "  wolfSSL error: ");
         StringBuilderAppendStringLiteral(sb, "\n");
         struct string message = StringBuilderFlush(sb);
         PrintString(&message);
