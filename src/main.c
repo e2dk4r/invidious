@@ -37,6 +37,10 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
   char buf[1024];
   mbedtls_strerror(errnum, buf, ARRAY_COUNT(buf));
   StringBuilderAppendZeroTerminated(sb, buf, 1024);
+
+  StringBuilderAppendStringLiteral(sb, " (errnum ");
+  StringBuilderAppendS64(sb, errnum);
+  StringBuilderAppendStringLiteral(sb, ")");
 }
 
 internalfn inline void
