@@ -505,7 +505,7 @@ HttpParse(struct http_parser *parser, struct string *httpResponse)
       }
 
       // Extract chunk data
-      struct string chunkData = StringCursorExtractUntil(&cursor, CRLF);
+      struct string chunkData = StringCursorExtractUntilOrRest(&cursor, CRLF);
       struct http_token *token = partialToken;
       if (!token) {
         // If it is not partial chunk data, create new

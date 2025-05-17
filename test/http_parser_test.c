@@ -192,35 +192,35 @@ main(void)
                 },
         },
         {
-            .httpResponse = &StringFromLiteral("HTTP/1.0"),
+            .httpResponse = &StringFromLiteral("HTTP/1.0 "),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
-            .httpResponse = &StringFromLiteral("HTTP/2.0"),
+            .httpResponse = &StringFromLiteral("HTTP/2.0 "),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_HTTP_VERSION_EXPECTED_1_1,
                 },
         },
         {
-            .httpResponse = &StringFromLiteral("HTTP/1.1 ABC"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 ABC "),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_EXPECTED_3_DIGIT_INTEGER,
                 },
         },
         {
-            .httpResponse = &StringFromLiteral("HTTP/1.1 1"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 1 "),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
                 },
         },
         {
-            .httpResponse = &StringFromLiteral("HTTP/1.1 10"),
+            .httpResponse = &StringFromLiteral("HTTP/1.1 10 "),
             .expected =
                 {
                     .error = HTTP_PARSER_ERROR_STATUS_CODE_INVALID,
@@ -759,7 +759,7 @@ main(void)
                             StringFromLiteral("200"),
                             StringFromLiteral("application/json"),
                             StringFromLiteral("chunked"),
-                            StringFromLiteral("b"),
+                            StringFromLiteral("c"),
                             StringFromLiteral("[ 4029, 2104"),
                             StringFromLiteral("9"),
                             StringFromLiteral("9342, 0 ]"),
