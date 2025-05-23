@@ -50,7 +50,7 @@ main(int argc, char *argv[])
       .total = ARRAY_COUNT(stackBuf),
   };
 
-  string_builder *sb = MakeStringBuilder(&stackMemory, 1024, 32);
+  string_builder *sb = MakeStringBuilder(&stackMemory, 2048, 32);
 
   // hostname
   struct string hostname = StringFromLiteral("i.iii.st");
