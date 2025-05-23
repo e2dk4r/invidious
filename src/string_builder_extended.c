@@ -126,25 +126,6 @@ StringBuilderAppendHttpParserError(string_builder *sb, enum http_parser_error er
   StringBuilderAppendString(sb, &message);
 }
 
-#if defined(MBEDTLS_CIPHER_C)
-#include <mbedtls/cipher.h>
-#endif /* MBEDTLS_CIPHER_C */
-#if defined(MBEDTLS_PEM_PARSE_C) || defined(MBEDTLS_PEM_WRITE_C)
-#include <mbedtls/pem.h>
-#endif /* MBEDTLS_PEM_PARSE_C || MBEDTLS_PEM_WRITE_C */
-#if defined(MBEDTLS_BASE64_C)
-#include <mbedtls/base64.h>
-#endif /* MBEDTLS_BASE64_C */
-#if defined(MBEDTLS_ERROR_C)
-#include <mbedtls/error.h>
-#endif /* MBEDTLS_ERROR_C */
-#if defined(MBEDTLS_HKDF_C)
-#include <mbedtls/hkdf.h>
-#endif /* MBEDTLS_HKDF_C */
-#if defined(MBEDTLS_OID_C)
-#include <mbedtls/oid.h>
-#endif /* MBEDTLS_OID_C */
-
 internalfn inline void
 StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
 {
@@ -164,339 +145,338 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
   highLevelError = (struct string){.value = 0, .length = 0};
   switch (highLevelErrorCode) {
 #if defined(MBEDTLS_CIPHER_C)
-  case -(MBEDTLS_ERR_CIPHER_FEATURE_UNAVAILABLE):
+  case 0x6080: // -(MBEDTLS_ERR_CIPHER_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("CIPHER - The selected feature is not available");
     break;
-  case -(MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA):
+  case 0x6100: // -(MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("CIPHER - Bad input parameters");
     break;
-  case -(MBEDTLS_ERR_CIPHER_ALLOC_FAILED):
+  case 0x6180: // -(MBEDTLS_ERR_CIPHER_ALLOC_FAILED):
     highLevelError = StringFromLiteral("CIPHER - Failed to allocate memory");
     break;
-  case -(MBEDTLS_ERR_CIPHER_INVALID_PADDING):
+  case 0x6200: // -(MBEDTLS_ERR_CIPHER_INVALID_PADDING):
     highLevelError = StringFromLiteral("CIPHER - Input data contains invalid padding and is rejected");
     break;
-  case -(MBEDTLS_ERR_CIPHER_FULL_BLOCK_EXPECTED):
+  case 0x6280: // -(MBEDTLS_ERR_CIPHER_FULL_BLOCK_EXPECTED):
     highLevelError = StringFromLiteral("CIPHER - Decryption of block requires a full block");
     break;
-  case -(MBEDTLS_ERR_CIPHER_AUTH_FAILED):
+  case 0x6300: // -(MBEDTLS_ERR_CIPHER_AUTH_FAILED):
     highLevelError = StringFromLiteral("CIPHER - Authentication failed (for AEAD modes)");
     break;
-  case -(MBEDTLS_ERR_CIPHER_INVALID_CONTEXT):
+  case 0x6380: // -(MBEDTLS_ERR_CIPHER_INVALID_CONTEXT):
     highLevelError = StringFromLiteral("CIPHER - The context is invalid. For example, because it was freed");
     break;
 #endif /* MBEDTLS_CIPHER_C */
 #if defined(MBEDTLS_DHM_C)
-  case -(MBEDTLS_ERR_DHM_BAD_INPUT_DATA):
+  case 0x3080: // -(MBEDTLS_ERR_DHM_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("DHM - Bad input parameters");
     break;
-  case -(MBEDTLS_ERR_DHM_READ_PARAMS_FAILED):
+  case 0x3100: // -(MBEDTLS_ERR_DHM_READ_PARAMS_FAILED):
     highLevelError = StringFromLiteral("DHM - Reading of the DHM parameters failed");
     break;
-  case -(MBEDTLS_ERR_DHM_MAKE_PARAMS_FAILED):
+  case 0x3180: // -(MBEDTLS_ERR_DHM_MAKE_PARAMS_FAILED):
     highLevelError = StringFromLiteral("DHM - Making of the DHM parameters failed");
     break;
-  case -(MBEDTLS_ERR_DHM_READ_PUBLIC_FAILED):
+  case 0x3200: // -(MBEDTLS_ERR_DHM_READ_PUBLIC_FAILED):
     highLevelError = StringFromLiteral("DHM - Reading of the public values failed");
     break;
-  case -(MBEDTLS_ERR_DHM_MAKE_PUBLIC_FAILED):
+  case 0x3280: // -(MBEDTLS_ERR_DHM_MAKE_PUBLIC_FAILED):
     highLevelError = StringFromLiteral("DHM - Making of the public value failed");
     break;
-  case -(MBEDTLS_ERR_DHM_CALC_SECRET_FAILED):
+  case 0x3300: // -(MBEDTLS_ERR_DHM_CALC_SECRET_FAILED):
     highLevelError = StringFromLiteral("DHM - Calculation of the DHM secret failed");
     break;
-  case -(MBEDTLS_ERR_DHM_INVALID_FORMAT):
+  case 0x3380: // -(MBEDTLS_ERR_DHM_INVALID_FORMAT):
     highLevelError = StringFromLiteral("DHM - The ASN.1 data is not formatted correctly");
     break;
-  case -(MBEDTLS_ERR_DHM_ALLOC_FAILED):
+  case 0x3400: // -(MBEDTLS_ERR_DHM_ALLOC_FAILED):
     highLevelError = StringFromLiteral("DHM - Allocation of memory failed");
     break;
-  case -(MBEDTLS_ERR_DHM_FILE_IO_ERROR):
+  case 0x3480: // -(MBEDTLS_ERR_DHM_FILE_IO_ERROR):
     highLevelError = StringFromLiteral("DHM - Read or write of file failed");
     break;
-  case -(MBEDTLS_ERR_DHM_SET_GROUP_FAILED):
+  case 0x3580: // -(MBEDTLS_ERR_DHM_SET_GROUP_FAILED):
     highLevelError = StringFromLiteral("DHM - Setting the modulus and generator failed");
     break;
 #endif /* MBEDTLS_DHM_C */
 #if defined(MBEDTLS_ECP_C)
-  case -(MBEDTLS_ERR_ECP_BAD_INPUT_DATA):
+  case 0x4F80: // -(MBEDTLS_ERR_ECP_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("ECP - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL):
+  case 0x4F00: // -(MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL):
     highLevelError = StringFromLiteral("ECP - The buffer is too small to write to");
     break;
-  case -(MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE):
+  case 0x4E80: // -(MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral(
         "ECP - The requested feature is not available, for example, the requested curve is not supported");
     break;
-  case -(MBEDTLS_ERR_ECP_VERIFY_FAILED):
+  case 0x4E00: // -(MBEDTLS_ERR_ECP_VERIFY_FAILED):
     highLevelError = StringFromLiteral("ECP - The signature is not valid");
     break;
-  case -(MBEDTLS_ERR_ECP_ALLOC_FAILED):
+  case 0x4D80: // -(MBEDTLS_ERR_ECP_ALLOC_FAILED):
     highLevelError = StringFromLiteral("ECP - Memory allocation failed");
     break;
-  case -(MBEDTLS_ERR_ECP_RANDOM_FAILED):
+  case 0x4D00: // -(MBEDTLS_ERR_ECP_RANDOM_FAILED):
     highLevelError = StringFromLiteral("ECP - Generation of random value, such as ephemeral key, failed");
     break;
-  case -(MBEDTLS_ERR_ECP_INVALID_KEY):
+  case 0x4C80: // -(MBEDTLS_ERR_ECP_INVALID_KEY):
     highLevelError = StringFromLiteral("ECP - Invalid private or public key");
     break;
-  case -(MBEDTLS_ERR_ECP_SIG_LEN_MISMATCH):
+  case 0x4C00: // -(MBEDTLS_ERR_ECP_SIG_LEN_MISMATCH):
     highLevelError = StringFromLiteral("ECP - The buffer contains a valid signature followed by more data");
     break;
-  case -(MBEDTLS_ERR_ECP_IN_PROGRESS):
+  case 0x4B00: // -(MBEDTLS_ERR_ECP_IN_PROGRESS):
     highLevelError = StringFromLiteral("ECP - Operation in progress, call again with the same parameters to continue");
     break;
 #endif /* MBEDTLS_ECP_C */
 #if defined(MBEDTLS_MD_C)
-  case -(MBEDTLS_ERR_MD_FEATURE_UNAVAILABLE):
+  case 0x5080: // -(MBEDTLS_ERR_MD_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("MD - The selected feature is not available");
     break;
-  case -(MBEDTLS_ERR_MD_BAD_INPUT_DATA):
+  case 0x5100: // -(MBEDTLS_ERR_MD_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("MD - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_MD_ALLOC_FAILED):
+  case 0x5180: // -(MBEDTLS_ERR_MD_ALLOC_FAILED):
     highLevelError = StringFromLiteral("MD - Failed to allocate memory");
     break;
-  case -(MBEDTLS_ERR_MD_FILE_IO_ERROR):
+  case 0x5200: // -(MBEDTLS_ERR_MD_FILE_IO_ERROR):
     highLevelError = StringFromLiteral("MD - Opening or reading of file failed");
     break;
 #endif /* MBEDTLS_MD_C */
 #if defined(MBEDTLS_PEM_PARSE_C) || defined(MBEDTLS_PEM_WRITE_C)
-  case -(MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT):
+  case 0x1080: // -(MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT):
     highLevelError = StringFromLiteral("PEM - No PEM header or footer found");
     break;
-  case -(MBEDTLS_ERR_PEM_INVALID_DATA):
+  case 0x1100: // -(MBEDTLS_ERR_PEM_INVALID_DATA):
     highLevelError = StringFromLiteral("PEM - PEM string is not as expected");
     break;
-  case -(MBEDTLS_ERR_PEM_ALLOC_FAILED):
+  case 0x1180: // -(MBEDTLS_ERR_PEM_ALLOC_FAILED):
     highLevelError = StringFromLiteral("PEM - Failed to allocate memory");
     break;
-  case -(MBEDTLS_ERR_PEM_INVALID_ENC_IV):
+  case 0x1200: // -(MBEDTLS_ERR_PEM_INVALID_ENC_IV):
     highLevelError = StringFromLiteral("PEM - RSA IV is not in hex-format");
     break;
-  case -(MBEDTLS_ERR_PEM_UNKNOWN_ENC_ALG):
+  case 0x1280: // -(MBEDTLS_ERR_PEM_UNKNOWN_ENC_ALG):
     highLevelError = StringFromLiteral("PEM - Unsupported key encryption algorithm");
     break;
-  case -(MBEDTLS_ERR_PEM_PASSWORD_REQUIRED):
+  case 0x1300: // -(MBEDTLS_ERR_PEM_PASSWORD_REQUIRED):
     highLevelError = StringFromLiteral("PEM - Private key password can't be empty");
     break;
-  case -(MBEDTLS_ERR_PEM_PASSWORD_MISMATCH):
+  case 0x1380: // -(MBEDTLS_ERR_PEM_PASSWORD_MISMATCH):
     highLevelError = StringFromLiteral("PEM - Given private key password does not allow for correct decryption");
     break;
-  case -(MBEDTLS_ERR_PEM_FEATURE_UNAVAILABLE):
+  case 0x1400: // -(MBEDTLS_ERR_PEM_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("PEM - Unavailable feature, e.g. hashing/encryption combination");
     break;
-  case -(MBEDTLS_ERR_PEM_BAD_INPUT_DATA):
+  case 0x1480: // -(MBEDTLS_ERR_PEM_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("PEM - Bad input parameters to function");
     break;
 #endif /* MBEDTLS_PEM_PARSE_C || MBEDTLS_PEM_WRITE_C */
 #if defined(MBEDTLS_PK_C)
-  case -(MBEDTLS_ERR_PK_ALLOC_FAILED):
+  case 0x3F80: // -(MBEDTLS_ERR_PK_ALLOC_FAILED):
     highLevelError = StringFromLiteral("PK - Memory allocation failed");
     break;
-  case -(MBEDTLS_ERR_PK_TYPE_MISMATCH):
+  case 0x3F00: // -(MBEDTLS_ERR_PK_TYPE_MISMATCH):
     highLevelError = StringFromLiteral("PK - Type mismatch, eg attempt to encrypt with an ECDSA key");
     break;
-  case -(MBEDTLS_ERR_PK_BAD_INPUT_DATA):
+  case 0x3E80: // -(MBEDTLS_ERR_PK_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("PK - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_PK_FILE_IO_ERROR):
+  case 0x3E00: // -(MBEDTLS_ERR_PK_FILE_IO_ERROR):
     highLevelError = StringFromLiteral("PK - Read/write of file failed");
     break;
-  case -(MBEDTLS_ERR_PK_KEY_INVALID_VERSION):
+  case 0x3D80: // -(MBEDTLS_ERR_PK_KEY_INVALID_VERSION):
     highLevelError = StringFromLiteral("PK - Unsupported key version");
     break;
-  case -(MBEDTLS_ERR_PK_KEY_INVALID_FORMAT):
+  case 0x3D00: // -(MBEDTLS_ERR_PK_KEY_INVALID_FORMAT):
     highLevelError = StringFromLiteral("PK - Invalid key tag or value");
     break;
-  case -(MBEDTLS_ERR_PK_UNKNOWN_PK_ALG):
+  case 0x3C80: // -(MBEDTLS_ERR_PK_UNKNOWN_PK_ALG):
     highLevelError = StringFromLiteral("PK - Key algorithm is unsupported (only RSA and EC are supported)");
     break;
-  case -(MBEDTLS_ERR_PK_PASSWORD_REQUIRED):
+  case 0x3C00: // -(MBEDTLS_ERR_PK_PASSWORD_REQUIRED):
     highLevelError = StringFromLiteral("PK - Private key password can't be empty");
     break;
-  case -(MBEDTLS_ERR_PK_PASSWORD_MISMATCH):
+  case 0x3B80: // -(MBEDTLS_ERR_PK_PASSWORD_MISMATCH):
     highLevelError = StringFromLiteral("PK - Given private key password does not allow for correct decryption");
     break;
-  case -(MBEDTLS_ERR_PK_INVALID_PUBKEY):
+  case 0x3B00: // -(MBEDTLS_ERR_PK_INVALID_PUBKEY):
     highLevelError = StringFromLiteral("PK - The pubkey tag or value is invalid (only RSA and EC are supported)");
     break;
-  case -(MBEDTLS_ERR_PK_INVALID_ALG):
+  case 0x3A80: // -(MBEDTLS_ERR_PK_INVALID_ALG):
     highLevelError = StringFromLiteral("PK - The algorithm tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_PK_UNKNOWN_NAMED_CURVE):
+  case 0x3A00: // -(MBEDTLS_ERR_PK_UNKNOWN_NAMED_CURVE):
     highLevelError = StringFromLiteral("PK - Elliptic curve is unsupported (only NIST curves are supported)");
     break;
-  case -(MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE):
+  case 0x3980: // -(MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("PK - Unavailable feature, e.g. RSA disabled for RSA key");
     break;
-  case -(MBEDTLS_ERR_PK_SIG_LEN_MISMATCH):
+  case 0x3900: // -(MBEDTLS_ERR_PK_SIG_LEN_MISMATCH):
     highLevelError = StringFromLiteral("PK - The buffer contains a valid signature followed by more data");
     break;
-  case -(MBEDTLS_ERR_PK_BUFFER_TOO_SMALL):
+  case 0x3880: // -(MBEDTLS_ERR_PK_BUFFER_TOO_SMALL):
     highLevelError = StringFromLiteral("PK - The output buffer is too small");
     break;
 #endif /* MBEDTLS_PK_C */
 #if defined(MBEDTLS_PKCS12_C)
-  case -(MBEDTLS_ERR_PKCS12_BAD_INPUT_DATA):
+  case 0x1F80: // -(MBEDTLS_ERR_PKCS12_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("PKCS12 - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_PKCS12_FEATURE_UNAVAILABLE):
+  case 0x1F00: // -(MBEDTLS_ERR_PKCS12_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("PKCS12 - Feature not available, e.g. unsupported encryption scheme");
     break;
-  case -(MBEDTLS_ERR_PKCS12_PBE_INVALID_FORMAT):
+  case 0x1E80: // -(MBEDTLS_ERR_PKCS12_PBE_INVALID_FORMAT):
     highLevelError = StringFromLiteral("PKCS12 - PBE ASN.1 data not as expected");
     break;
-  case -(MBEDTLS_ERR_PKCS12_PASSWORD_MISMATCH):
+  case 0x1E00: // -(MBEDTLS_ERR_PKCS12_PASSWORD_MISMATCH):
     highLevelError = StringFromLiteral("PKCS12 - Given private key password does not allow for correct decryption");
     break;
 #endif /* MBEDTLS_PKCS12_C */
 #if defined(MBEDTLS_PKCS5_C)
-  case -(MBEDTLS_ERR_PKCS5_BAD_INPUT_DATA):
+  case 0x2f80: // -(MBEDTLS_ERR_PKCS5_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("PKCS5 - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_PKCS5_INVALID_FORMAT):
+  case 0x2f00: // -(MBEDTLS_ERR_PKCS5_INVALID_FORMAT):
     highLevelError = StringFromLiteral("PKCS5 - Unexpected ASN.1 data");
     break;
-  case -(MBEDTLS_ERR_PKCS5_FEATURE_UNAVAILABLE):
+  case 0x2e80: // -(MBEDTLS_ERR_PKCS5_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("PKCS5 - Requested encryption or digest alg not available");
     break;
-  case -(MBEDTLS_ERR_PKCS5_PASSWORD_MISMATCH):
+  case 0x2e00: // -(MBEDTLS_ERR_PKCS5_PASSWORD_MISMATCH):
     highLevelError = StringFromLiteral("PKCS5 - Given private key password does not allow for correct decryption");
     break;
 #endif /* MBEDTLS_PKCS5_C */
 #if defined(MBEDTLS_PKCS7_C)
-  case -(MBEDTLS_ERR_PKCS7_INVALID_FORMAT):
+  case 0x5300: // -(MBEDTLS_ERR_PKCS7_INVALID_FORMAT):
     highLevelError = StringFromLiteral("PKCS7 - The format is invalid, e.g. different type expected");
     break;
-  case -(MBEDTLS_ERR_PKCS7_FEATURE_UNAVAILABLE):
+  case 0x5380: // -(MBEDTLS_ERR_PKCS7_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("PKCS7 - Unavailable feature, e.g. anything other than signed data");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_VERSION):
+  case 0x5400: // -(MBEDTLS_ERR_PKCS7_INVALID_VERSION):
     highLevelError = StringFromLiteral("PKCS7 - The PKCS #7 version element is invalid or cannot be parsed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_CONTENT_INFO):
+  case 0x5480: // -(MBEDTLS_ERR_PKCS7_INVALID_CONTENT_INFO):
     highLevelError = StringFromLiteral("PKCS7 - The PKCS #7 content info is invalid or cannot be parsed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_ALG):
+  case 0x5500: // -(MBEDTLS_ERR_PKCS7_INVALID_ALG):
     highLevelError = StringFromLiteral("PKCS7 - The algorithm tag or value is invalid or cannot be parsed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_CERT):
+  case 0x5580: // -(MBEDTLS_ERR_PKCS7_INVALID_CERT):
     highLevelError = StringFromLiteral("PKCS7 - The certificate tag or value is invalid or cannot be parsed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_SIGNATURE):
+  case 0x5600: // -(MBEDTLS_ERR_PKCS7_INVALID_SIGNATURE):
     highLevelError = StringFromLiteral("PKCS7 - Error parsing the signature");
     break;
-  case -(MBEDTLS_ERR_PKCS7_INVALID_SIGNER_INFO):
+  case 0x5680: // -(MBEDTLS_ERR_PKCS7_INVALID_SIGNER_INFO):
     highLevelError = StringFromLiteral("PKCS7 - Error parsing the signer's info");
     break;
-  case -(MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA):
+  case 0x5700: // -(MBEDTLS_ERR_PKCS7_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("PKCS7 - Input invalid");
     break;
-  case -(MBEDTLS_ERR_PKCS7_ALLOC_FAILED):
+  case 0x5780: // -(MBEDTLS_ERR_PKCS7_ALLOC_FAILED):
     highLevelError = StringFromLiteral("PKCS7 - Allocation of memory failed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_VERIFY_FAIL):
+  case 0x5800: // -(MBEDTLS_ERR_PKCS7_VERIFY_FAIL):
     highLevelError = StringFromLiteral("PKCS7 - Verification Failed");
     break;
-  case -(MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID):
+  case 0x5880: // -(MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID):
     highLevelError = StringFromLiteral("PKCS7 - The PKCS #7 date issued/expired dates are invalid");
     break;
 #endif /* MBEDTLS_PKCS7_C */
 #if defined(MBEDTLS_RSA_C)
-  case -(MBEDTLS_ERR_RSA_BAD_INPUT_DATA):
+  case 0x4080: // -(MBEDTLS_ERR_RSA_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("RSA - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_RSA_INVALID_PADDING):
+  case 0x4100: // -(MBEDTLS_ERR_RSA_INVALID_PADDING):
     highLevelError = StringFromLiteral("RSA - Input data contains invalid padding and is rejected");
     break;
-  case -(MBEDTLS_ERR_RSA_KEY_GEN_FAILED):
+  case 0x4180: // -(MBEDTLS_ERR_RSA_KEY_GEN_FAILED):
     highLevelError = StringFromLiteral("RSA - Something failed during generation of a key");
     break;
-  case -(MBEDTLS_ERR_RSA_KEY_CHECK_FAILED):
+  case 0x4200: // -(MBEDTLS_ERR_RSA_KEY_CHECK_FAILED):
     highLevelError = StringFromLiteral("RSA - Key failed to pass the validity check of the library");
     break;
-  case -(MBEDTLS_ERR_RSA_PUBLIC_FAILED):
+  case 0x4280: // -(MBEDTLS_ERR_RSA_PUBLIC_FAILED):
     highLevelError = StringFromLiteral("RSA - The public key operation failed");
     break;
-  case -(MBEDTLS_ERR_RSA_PRIVATE_FAILED):
+  case 0x4300: // -(MBEDTLS_ERR_RSA_PRIVATE_FAILED):
     highLevelError = StringFromLiteral("RSA - The private key operation failed");
     break;
-  case -(MBEDTLS_ERR_RSA_VERIFY_FAILED):
+  case 0x4380: // -(MBEDTLS_ERR_RSA_VERIFY_FAILED):
     highLevelError = StringFromLiteral("RSA - The PKCS#1 verification failed");
     break;
-  case -(MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE):
+  case 0x4400: // -(MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE):
     highLevelError = StringFromLiteral("RSA - The output buffer for decryption is not large enough");
     break;
-  case -(MBEDTLS_ERR_RSA_RNG_FAILED):
+  case 0x4480: // -(MBEDTLS_ERR_RSA_RNG_FAILED):
     highLevelError = StringFromLiteral("RSA - The random generator failed to generate non-zeros");
     break;
 #endif /* MBEDTLS_RSA_C */
 #if defined(MBEDTLS_SSL_TLS_C)
-  case -(MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS):
+  case 0x7000: // -(MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS):
     highLevelError = StringFromLiteral("SSL - A cryptographic operation is in progress. Try again later");
     break;
-  case -(MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE):
+  case 0x7080: // -(MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("SSL - The requested feature is not available");
     break;
-  case -(MBEDTLS_ERR_SSL_BAD_INPUT_DATA):
+  case 0x7100: // -(MBEDTLS_ERR_SSL_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("SSL - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_SSL_INVALID_MAC):
+  case 0x7180: // -(MBEDTLS_ERR_SSL_INVALID_MAC):
     highLevelError = StringFromLiteral("SSL - Verification of the message MAC failed");
     break;
-  case -(MBEDTLS_ERR_SSL_INVALID_RECORD):
+  case 0x7200: // -(MBEDTLS_ERR_SSL_INVALID_RECORD):
     highLevelError = StringFromLiteral("SSL - An invalid SSL record was received");
     break;
-  case -(MBEDTLS_ERR_SSL_CONN_EOF):
+  case 0x7280: // -(MBEDTLS_ERR_SSL_CONN_EOF):
     highLevelError = StringFromLiteral("SSL - The connection indicated an EOF");
     break;
-  case -(MBEDTLS_ERR_SSL_DECODE_ERROR):
+  case 0x7300: // -(MBEDTLS_ERR_SSL_DECODE_ERROR):
     highLevelError = StringFromLiteral("SSL - A message could not be parsed due to a syntactic error");
     break;
-  case -(MBEDTLS_ERR_SSL_NO_RNG):
+  case 0x7400: // -(MBEDTLS_ERR_SSL_NO_RNG):
     highLevelError = StringFromLiteral("SSL - No RNG was provided to the SSL module");
     break;
-  case -(MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE):
+  case 0x7480: // -(MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE):
     highLevelError = StringFromLiteral(
         "SSL - No client certification received from the client, but required by the authentication mode");
     break;
-  case -(MBEDTLS_ERR_SSL_UNSUPPORTED_EXTENSION):
+  case 0x7500: // -(MBEDTLS_ERR_SSL_UNSUPPORTED_EXTENSION):
     highLevelError =
         StringFromLiteral("SSL - Client received an extended server hello containing an unsupported extension");
     break;
-  case -(MBEDTLS_ERR_SSL_NO_APPLICATION_PROTOCOL):
+  case 0x7580: // -(MBEDTLS_ERR_SSL_NO_APPLICATION_PROTOCOL):
     highLevelError = StringFromLiteral("SSL - No ALPN protocols supported that the client advertises");
     break;
-  case -(MBEDTLS_ERR_SSL_PRIVATE_KEY_REQUIRED):
+  case 0x7600: // -(MBEDTLS_ERR_SSL_PRIVATE_KEY_REQUIRED):
     highLevelError = StringFromLiteral("SSL - The own private key or pre-shared key is not set, but needed");
     break;
-  case -(MBEDTLS_ERR_SSL_CA_CHAIN_REQUIRED):
+  case 0x7680: // -(MBEDTLS_ERR_SSL_CA_CHAIN_REQUIRED):
     highLevelError = StringFromLiteral("SSL - No CA Chain is set, but required to operate");
     break;
-  case -(MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE):
+  case 0x7700: // -(MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE):
     highLevelError = StringFromLiteral("SSL - An unexpected message was received from our peer");
     break;
-  case -(MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE):
+  case 0x7780: // -(MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE):
     highLevelError = StringFromLiteral("SSL - A fatal alert message was received from our peer");
     break;
-  case -(MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME):
+  case 0x7800: // -(MBEDTLS_ERR_SSL_UNRECOGNIZED_NAME):
     highLevelError = StringFromLiteral("SSL - No server could be identified matching the client's SNI");
     break;
-  case -(MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY):
+  case 0x7880: // -(MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY):
     highLevelError = StringFromLiteral("SSL - The peer notified us that the connection is going to be closed");
-    break;
-  case -(MBEDTLS_ERR_SSL_BAD_CERTIFICATE):
+  case 0x7A00: // -(MBEDTLS_ERR_SSL_BAD_CERTIFICATE):
     highLevelError = StringFromLiteral("SSL - Processing of the Certificate handshake message failed");
     break;
-  case -(MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET):
+  case 0x7B00: // -(MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET):
     highLevelError = StringFromLiteral("SSL - A TLS 1.3 NewSessionTicket message has been received");
     break;
-  case -(MBEDTLS_ERR_SSL_CANNOT_READ_EARLY_DATA):
+  case 0x7B80: // -(MBEDTLS_ERR_SSL_CANNOT_READ_EARLY_DATA):
     highLevelError = StringFromLiteral("SSL - Not possible to read early data");
     break;
-  case -(MBEDTLS_ERR_SSL_RECEIVED_EARLY_DATA):
+  case 0x7C00: // -(MBEDTLS_ERR_SSL_RECEIVED_EARLY_DATA):
     highLevelError = StringFromLiteral(
         "SSL - * Early data has been received as part of an on-going handshake. This error code can be returned only "
         "on server side if and only if early data has been enabled by means of the mbedtls_ssl_conf_early_data() API. "
@@ -504,93 +484,93 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
         "mbedtls_ssl_read() or mbedtls_ssl_write() if early data has been received as part of the handshake sequence "
         "they triggered. To read the early data, call mbedtls_ssl_read_early_data()");
     break;
-  case -(MBEDTLS_ERR_SSL_CANNOT_WRITE_EARLY_DATA):
+  case 0x7C80: // -(MBEDTLS_ERR_SSL_CANNOT_WRITE_EARLY_DATA):
     highLevelError = StringFromLiteral("SSL - Not possible to write early data");
     break;
-  case -(MBEDTLS_ERR_SSL_CACHE_ENTRY_NOT_FOUND):
+  case 0x7E80: // -(MBEDTLS_ERR_SSL_CACHE_ENTRY_NOT_FOUND):
     highLevelError = StringFromLiteral("SSL - Cache entry not found");
     break;
-  case -(MBEDTLS_ERR_SSL_ALLOC_FAILED):
+  case 0x7F00: // -(MBEDTLS_ERR_SSL_ALLOC_FAILED):
     highLevelError = StringFromLiteral("SSL - Memory allocation failed");
     break;
-  case -(MBEDTLS_ERR_SSL_HW_ACCEL_FAILED):
+  case 0x7F80: // -(MBEDTLS_ERR_SSL_HW_ACCEL_FAILED):
     highLevelError = StringFromLiteral("SSL - Hardware acceleration function returned with error");
     break;
-  case -(MBEDTLS_ERR_SSL_HW_ACCEL_FALLTHROUGH):
+  case 0x6F80: // -(MBEDTLS_ERR_SSL_HW_ACCEL_FALLTHROUGH):
     highLevelError = StringFromLiteral("SSL - Hardware acceleration function skipped / left alone data");
     break;
-  case -(MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION):
+  case 0x6E80: // -(MBEDTLS_ERR_SSL_BAD_PROTOCOL_VERSION):
     highLevelError = StringFromLiteral("SSL - Handshake protocol not within min/max boundaries");
     break;
-  case -(MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE):
+  case 0x6E00: // -(MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE):
     highLevelError = StringFromLiteral("SSL - The handshake negotiation failed");
     break;
-  case -(MBEDTLS_ERR_SSL_SESSION_TICKET_EXPIRED):
+  case 0x6D80: // -(MBEDTLS_ERR_SSL_SESSION_TICKET_EXPIRED):
     highLevelError = StringFromLiteral("SSL - Session ticket has expired");
     break;
-  case -(MBEDTLS_ERR_SSL_PK_TYPE_MISMATCH):
+  case 0x6D00: // -(MBEDTLS_ERR_SSL_PK_TYPE_MISMATCH):
     highLevelError =
         StringFromLiteral("SSL - Public key type mismatch (eg, asked for RSA key exchange and presented EC key)");
     break;
-  case -(MBEDTLS_ERR_SSL_UNKNOWN_IDENTITY):
+  case 0x6C80: // -(MBEDTLS_ERR_SSL_UNKNOWN_IDENTITY):
     highLevelError = StringFromLiteral("SSL - Unknown identity received (eg, PSK identity)");
     break;
-  case -(MBEDTLS_ERR_SSL_INTERNAL_ERROR):
+  case 0x6C00: // -(MBEDTLS_ERR_SSL_INTERNAL_ERROR):
     highLevelError = StringFromLiteral("SSL - Internal error (eg, unexpected failure in lower-level module)");
     break;
-  case -(MBEDTLS_ERR_SSL_COUNTER_WRAPPING):
+  case 0x6B80: // -(MBEDTLS_ERR_SSL_COUNTER_WRAPPING):
     highLevelError = StringFromLiteral("SSL - A counter would wrap (eg, too many messages exchanged)");
     break;
-  case -(MBEDTLS_ERR_SSL_WAITING_SERVER_HELLO_RENEGO):
+  case 0x6B00: // -(MBEDTLS_ERR_SSL_WAITING_SERVER_HELLO_RENEGO):
     highLevelError = StringFromLiteral("SSL - Unexpected message at ServerHello in renegotiation");
     break;
-  case -(MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED):
+  case 0x6A80: // -(MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED):
     highLevelError = StringFromLiteral("SSL - DTLS client must retry for hello verification");
     break;
-  case -(MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL):
+  case 0x6A00: // -(MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL):
     highLevelError = StringFromLiteral("SSL - A buffer is too small to receive or write a message");
     break;
-  case -(MBEDTLS_ERR_SSL_WANT_READ):
+  case 0x6900: // -(MBEDTLS_ERR_SSL_WANT_READ):
     highLevelError = StringFromLiteral("SSL - No data of requested type currently available on underlying transport");
     break;
-  case -(MBEDTLS_ERR_SSL_WANT_WRITE):
+  case 0x6880: // -(MBEDTLS_ERR_SSL_WANT_WRITE):
     highLevelError = StringFromLiteral("SSL - Connection requires a write call");
     break;
-  case -(MBEDTLS_ERR_SSL_TIMEOUT):
+  case 0x6800: // -(MBEDTLS_ERR_SSL_TIMEOUT):
     highLevelError = StringFromLiteral("SSL - The operation timed out");
     break;
-  case -(MBEDTLS_ERR_SSL_CLIENT_RECONNECT):
+  case 0x6780: // -(MBEDTLS_ERR_SSL_CLIENT_RECONNECT):
     highLevelError = StringFromLiteral("SSL - The client initiated a reconnect from the same port");
     break;
-  case -(MBEDTLS_ERR_SSL_UNEXPECTED_RECORD):
+  case 0x6700: // -(MBEDTLS_ERR_SSL_UNEXPECTED_RECORD):
     highLevelError = StringFromLiteral("SSL - Record header looks valid but is not expected");
     break;
-  case -(MBEDTLS_ERR_SSL_NON_FATAL):
+  case 0x6680: // -(MBEDTLS_ERR_SSL_NON_FATAL):
     highLevelError = StringFromLiteral("SSL - The alert message received indicates a non-fatal error");
     break;
-  case -(MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER):
+  case 0x6600: // -(MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER):
     highLevelError = StringFromLiteral("SSL - A field in a message was incorrect or inconsistent with other fields");
     break;
-  case -(MBEDTLS_ERR_SSL_CONTINUE_PROCESSING):
+  case 0x6580: // -(MBEDTLS_ERR_SSL_CONTINUE_PROCESSING):
     highLevelError =
         StringFromLiteral("SSL - Internal-only message signaling that further message-processing should be done");
     break;
-  case -(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS):
+  case 0x6500: // -(MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS):
     highLevelError = StringFromLiteral("SSL - The asynchronous operation is not completed yet");
     break;
-  case -(MBEDTLS_ERR_SSL_EARLY_MESSAGE):
+  case 0x6480: // -(MBEDTLS_ERR_SSL_EARLY_MESSAGE):
     highLevelError = StringFromLiteral("SSL - Internal-only message signaling that a message arrived early");
     break;
-  case -(MBEDTLS_ERR_SSL_UNEXPECTED_CID):
+  case 0x6000: // -(MBEDTLS_ERR_SSL_UNEXPECTED_CID):
     highLevelError = StringFromLiteral("SSL - An encrypted DTLS-frame with an unexpected CID was received");
     break;
-  case -(MBEDTLS_ERR_SSL_VERSION_MISMATCH):
+  case 0x5F00: // -(MBEDTLS_ERR_SSL_VERSION_MISMATCH):
     highLevelError = StringFromLiteral("SSL - An operation failed due to an unexpected version or configuration");
     break;
-  case -(MBEDTLS_ERR_SSL_BAD_CONFIG):
+  case 0x5E80: // -(MBEDTLS_ERR_SSL_BAD_CONFIG):
     highLevelError = StringFromLiteral("SSL - Invalid value in SSL config");
     break;
-  case -(MBEDTLS_ERR_SSL_CERTIFICATE_VERIFICATION_WITHOUT_HOSTNAME):
+  case 0x5D80: // -(MBEDTLS_ERR_SSL_CERTIFICATE_VERIFICATION_WITHOUT_HOSTNAME):
     highLevelError = StringFromLiteral(
         "SSL - Attempt to verify a certificate without an expected hostname. This is usually insecure.  In TLS "
         "clients, when a client authenticates a server through its certificate, the client normally checks three "
@@ -610,66 +590,66 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
     break;
 #endif /* MBEDTLS_SSL_TLS_C */
 #if defined(MBEDTLS_X509_USE_C) || defined(MBEDTLS_X509_CREATE_C)
-  case -(MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE):
+  case 0x2080: // -(MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE):
     highLevelError = StringFromLiteral("X509 - Unavailable feature, e.g. RSA hashing/encryption combination");
     break;
-  case -(MBEDTLS_ERR_X509_UNKNOWN_OID):
+  case 0x2100: // -(MBEDTLS_ERR_X509_UNKNOWN_OID):
     highLevelError = StringFromLiteral("X509 - Requested OID is unknown");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_FORMAT):
+  case 0x2180: // -(MBEDTLS_ERR_X509_INVALID_FORMAT):
     highLevelError = StringFromLiteral("X509 - The CRT/CRL/CSR format is invalid, e.g. different type expected");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_VERSION):
+  case 0x2200: // -(MBEDTLS_ERR_X509_INVALID_VERSION):
     highLevelError = StringFromLiteral("X509 - The CRT/CRL/CSR version element is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_SERIAL):
+  case 0x2280: // -(MBEDTLS_ERR_X509_INVALID_SERIAL):
     highLevelError = StringFromLiteral("X509 - The serial tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_ALG):
+  case 0x2300: // -(MBEDTLS_ERR_X509_INVALID_ALG):
     highLevelError = StringFromLiteral("X509 - The algorithm tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_NAME):
+  case 0x2380: // -(MBEDTLS_ERR_X509_INVALID_NAME):
     highLevelError = StringFromLiteral("X509 - The name tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_DATE):
+  case 0x2400: // -(MBEDTLS_ERR_X509_INVALID_DATE):
     highLevelError = StringFromLiteral("X509 - The date tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_SIGNATURE):
+  case 0x2480: // -(MBEDTLS_ERR_X509_INVALID_SIGNATURE):
     highLevelError = StringFromLiteral("X509 - The signature tag or value invalid");
     break;
-  case -(MBEDTLS_ERR_X509_INVALID_EXTENSIONS):
+  case 0x2500: // -(MBEDTLS_ERR_X509_INVALID_EXTENSIONS):
     highLevelError = StringFromLiteral("X509 - The extension tag or value is invalid");
     break;
-  case -(MBEDTLS_ERR_X509_UNKNOWN_VERSION):
+  case 0x2580: // -(MBEDTLS_ERR_X509_UNKNOWN_VERSION):
     highLevelError = StringFromLiteral("X509 - CRT/CRL/CSR has an unsupported version number");
     break;
-  case -(MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG):
+  case 0x2600: // -(MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG):
     highLevelError = StringFromLiteral("X509 - Signature algorithm (oid) is unsupported");
     break;
-  case -(MBEDTLS_ERR_X509_SIG_MISMATCH):
+  case 0x2680: // -(MBEDTLS_ERR_X509_SIG_MISMATCH):
     highLevelError =
         StringFromLiteral("X509 - Signature algorithms do not match. (see \\c ::mbedtls_x509_crt sig_oid)");
     break;
-  case -(MBEDTLS_ERR_X509_CERT_VERIFY_FAILED):
+  case 0x2700: // -(MBEDTLS_ERR_X509_CERT_VERIFY_FAILED):
     highLevelError =
         StringFromLiteral("X509 - Certificate verification failed, e.g. CRL, CA or signature check failed");
     break;
-  case -(MBEDTLS_ERR_X509_CERT_UNKNOWN_FORMAT):
+  case 0x2780: // -(MBEDTLS_ERR_X509_CERT_UNKNOWN_FORMAT):
     highLevelError = StringFromLiteral("X509 - Format not recognized as DER or PEM");
     break;
-  case -(MBEDTLS_ERR_X509_BAD_INPUT_DATA):
+  case 0x2800: // -(MBEDTLS_ERR_X509_BAD_INPUT_DATA):
     highLevelError = StringFromLiteral("X509 - Input invalid");
     break;
-  case -(MBEDTLS_ERR_X509_ALLOC_FAILED):
+  case 0x2880: // -(MBEDTLS_ERR_X509_ALLOC_FAILED):
     highLevelError = StringFromLiteral("X509 - Allocation of memory failed");
     break;
-  case -(MBEDTLS_ERR_X509_FILE_IO_ERROR):
+  case 0x2900: // -(MBEDTLS_ERR_X509_FILE_IO_ERROR):
     highLevelError = StringFromLiteral("X509 - Read/write of file failed");
     break;
-  case -(MBEDTLS_ERR_X509_BUFFER_TOO_SMALL):
+  case 0x2980: // -(MBEDTLS_ERR_X509_BUFFER_TOO_SMALL):
     highLevelError = StringFromLiteral("X509 - Destination buffer is too small");
     break;
-  case -(MBEDTLS_ERR_X509_FATAL_ERROR):
+  case 0x3000: // -(MBEDTLS_ERR_X509_FATAL_ERROR):
     highLevelError =
         StringFromLiteral("X509 - A fatal error occurred, eg the chain is too long or the vrfy callback failed");
     break;
@@ -682,289 +662,288 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
   lowLevelError = (struct string){.value = 0, .length = 0};
   switch (lowLevelErrorCode) {
 #if defined(MBEDTLS_AES_C)
-  case -(MBEDTLS_ERR_AES_INVALID_KEY_LENGTH):
+  case 0x0020: // -(MBEDTLS_ERR_AES_INVALID_KEY_LENGTH):
     lowLevelError = StringFromLiteral("AES - Invalid key length");
     break;
-  case -(MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH):
+  case 0x0022: // -(MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH):
     lowLevelError = StringFromLiteral("AES - Invalid data input length");
     break;
-  case -(MBEDTLS_ERR_AES_BAD_INPUT_DATA):
+  case 0x0021: // -(MBEDTLS_ERR_AES_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("AES - Invalid input data");
     break;
 #endif /* MBEDTLS_AES_C */
 #if defined(MBEDTLS_ARIA_C)
-  case -(MBEDTLS_ERR_ARIA_BAD_INPUT_DATA):
+  case 0x005C: // -(MBEDTLS_ERR_ARIA_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("ARIA - Bad input data");
     break;
-  case -(MBEDTLS_ERR_ARIA_INVALID_INPUT_LENGTH):
+  case 0x005E: // -(MBEDTLS_ERR_ARIA_INVALID_INPUT_LENGTH):
     lowLevelError = StringFromLiteral("ARIA - Invalid data input length");
     break;
 #endif /* MBEDTLS_ARIA_C */
 #if defined(MBEDTLS_ASN1_PARSE_C)
-  case -(MBEDTLS_ERR_ASN1_OUT_OF_DATA):
+  case 0x0060: // -(MBEDTLS_ERR_ASN1_OUT_OF_DATA):
     lowLevelError = StringFromLiteral("ASN1 - Out of data when parsing an ASN1 data structure");
     break;
-  case -(MBEDTLS_ERR_ASN1_UNEXPECTED_TAG):
+  case 0x0062: // -(MBEDTLS_ERR_ASN1_UNEXPECTED_TAG):
     lowLevelError = StringFromLiteral("ASN1 - ASN1 tag was of an unexpected value");
     break;
-  case -(MBEDTLS_ERR_ASN1_INVALID_LENGTH):
+  case 0x0064: // -(MBEDTLS_ERR_ASN1_INVALID_LENGTH):
     lowLevelError = StringFromLiteral("ASN1 - Error when trying to determine the length or invalid length");
     break;
-  case -(MBEDTLS_ERR_ASN1_LENGTH_MISMATCH):
+  case 0x0066: // -(MBEDTLS_ERR_ASN1_LENGTH_MISMATCH):
     lowLevelError = StringFromLiteral("ASN1 - Actual length differs from expected length");
     break;
-  case -(MBEDTLS_ERR_ASN1_INVALID_DATA):
+  case 0x0068: // -(MBEDTLS_ERR_ASN1_INVALID_DATA):
     lowLevelError = StringFromLiteral("ASN1 - Data is invalid");
     break;
-  case -(MBEDTLS_ERR_ASN1_ALLOC_FAILED):
+  case 0x006A: // -(MBEDTLS_ERR_ASN1_ALLOC_FAILED):
     lowLevelError = StringFromLiteral("ASN1 - Memory allocation failed");
     break;
-  case -(MBEDTLS_ERR_ASN1_BUF_TOO_SMALL):
+  case 0x006C: // -(MBEDTLS_ERR_ASN1_BUF_TOO_SMALL):
     lowLevelError = StringFromLiteral("ASN1 - Buffer too small when writing ASN.1 data structure");
     break;
 #endif /* MBEDTLS_ASN1_PARSE_C */
 #if defined(MBEDTLS_BASE64_C)
-  case -(MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL):
+  case 0x002A: // -(MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL):
     lowLevelError = StringFromLiteral("BASE64 - Output buffer too small");
     break;
-  case -(MBEDTLS_ERR_BASE64_INVALID_CHARACTER):
+  case 0x002C: // -(MBEDTLS_ERR_BASE64_INVALID_CHARACTER):
     lowLevelError = StringFromLiteral("BASE64 - Invalid character in input");
     break;
 #endif /* MBEDTLS_BASE64_C */
 #if defined(MBEDTLS_BIGNUM_C)
-  case -(MBEDTLS_ERR_MPI_FILE_IO_ERROR):
+  case 0x0002: // -(MBEDTLS_ERR_MPI_FILE_IO_ERROR):
     lowLevelError = StringFromLiteral("BIGNUM - An error occurred while reading from or writing to a file");
     break;
-  case -(MBEDTLS_ERR_MPI_BAD_INPUT_DATA):
+  case 0x0004: // -(MBEDTLS_ERR_MPI_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("BIGNUM - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_MPI_INVALID_CHARACTER):
+  case 0x0006: // -(MBEDTLS_ERR_MPI_INVALID_CHARACTER):
     lowLevelError = StringFromLiteral("BIGNUM - There is an invalid character in the digit string");
     break;
-  case -(MBEDTLS_ERR_MPI_BUFFER_TOO_SMALL):
+  case 0x0008: // -(MBEDTLS_ERR_MPI_BUFFER_TOO_SMALL):
     lowLevelError = StringFromLiteral("BIGNUM - The buffer is too small to write to");
     break;
-  case -(MBEDTLS_ERR_MPI_NEGATIVE_VALUE):
+  case 0x000A: // -(MBEDTLS_ERR_MPI_NEGATIVE_VALUE):
     lowLevelError = StringFromLiteral("BIGNUM - The input arguments are negative or result in illegal output");
     break;
-  case -(MBEDTLS_ERR_MPI_DIVISION_BY_ZERO):
+  case 0x000C: // -(MBEDTLS_ERR_MPI_DIVISION_BY_ZERO):
     lowLevelError = StringFromLiteral("BIGNUM - The input argument for division is zero, which is not allowed");
     break;
-  case -(MBEDTLS_ERR_MPI_NOT_ACCEPTABLE):
+  case 0x000E: // -(MBEDTLS_ERR_MPI_NOT_ACCEPTABLE):
     lowLevelError = StringFromLiteral("BIGNUM - The input arguments are not acceptable");
     break;
-  case -(MBEDTLS_ERR_MPI_ALLOC_FAILED):
+  case 0x0010: // -(MBEDTLS_ERR_MPI_ALLOC_FAILED):
     lowLevelError = StringFromLiteral("BIGNUM - Memory allocation failed");
     break;
 #endif /* MBEDTLS_BIGNUM_C */
 #if defined(MBEDTLS_CAMELLIA_C)
-  case -(MBEDTLS_ERR_CAMELLIA_BAD_INPUT_DATA):
+  case 0x0024: // -(MBEDTLS_ERR_CAMELLIA_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("CAMELLIA - Bad input data");
     break;
-  case -(MBEDTLS_ERR_CAMELLIA_INVALID_INPUT_LENGTH):
+  case 0x0026: // -(MBEDTLS_ERR_CAMELLIA_INVALID_INPUT_LENGTH):
     lowLevelError = StringFromLiteral("CAMELLIA - Invalid data input length");
     break;
 #endif /* MBEDTLS_CAMELLIA_C */
 #if defined(MBEDTLS_CCM_C)
-  case -(MBEDTLS_ERR_CCM_BAD_INPUT):
+  case 0x000D: // -(MBEDTLS_ERR_CCM_BAD_INPUT):
     lowLevelError = StringFromLiteral("CCM - Bad input parameters to the function");
     break;
-  case -(MBEDTLS_ERR_CCM_AUTH_FAILED):
+  case 0x000F: // -(MBEDTLS_ERR_CCM_AUTH_FAILED):
     lowLevelError = StringFromLiteral("CCM - Authenticated decryption failed");
     break;
 #endif /* MBEDTLS_CCM_C */
 #if defined(MBEDTLS_CHACHA20_C)
-  case -(MBEDTLS_ERR_CHACHA20_BAD_INPUT_DATA):
+  case 0x0051: // -(MBEDTLS_ERR_CHACHA20_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("CHACHA20 - Invalid input parameter(s)");
     break;
 #endif /* MBEDTLS_CHACHA20_C */
 #if defined(MBEDTLS_CHACHAPOLY_C)
-  case -(MBEDTLS_ERR_CHACHAPOLY_BAD_STATE):
+  case 0x0054: // -(MBEDTLS_ERR_CHACHAPOLY_BAD_STATE):
     lowLevelError = StringFromLiteral("CHACHAPOLY - The requested operation is not permitted in the current state");
     break;
-  case -(MBEDTLS_ERR_CHACHAPOLY_AUTH_FAILED):
+  case 0x0056: // -(MBEDTLS_ERR_CHACHAPOLY_AUTH_FAILED):
     lowLevelError = StringFromLiteral("CHACHAPOLY - Authenticated decryption failed: data was not authentic");
     break;
 #endif /* MBEDTLS_CHACHAPOLY_C */
 #if defined(MBEDTLS_CTR_DRBG_C)
-  case -(MBEDTLS_ERR_CTR_DRBG_ENTROPY_SOURCE_FAILED):
+  case 0x0034: // -(MBEDTLS_ERR_CTR_DRBG_ENTROPY_SOURCE_FAILED):
     lowLevelError = StringFromLiteral("CTR_DRBG - The entropy source failed");
     break;
-  case -(MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG):
+  case 0x0036: // -(MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG):
     lowLevelError = StringFromLiteral("CTR_DRBG - The requested random buffer length is too big");
     break;
-  case -(MBEDTLS_ERR_CTR_DRBG_INPUT_TOO_BIG):
+  case 0x0038: // -(MBEDTLS_ERR_CTR_DRBG_INPUT_TOO_BIG):
     lowLevelError = StringFromLiteral("CTR_DRBG - The input (entropy + additional data) is too large");
     break;
-  case -(MBEDTLS_ERR_CTR_DRBG_FILE_IO_ERROR):
+  case 0x003A: // -(MBEDTLS_ERR_CTR_DRBG_FILE_IO_ERROR):
     lowLevelError = StringFromLiteral("CTR_DRBG - Read or write error in file");
     break;
 #endif /* MBEDTLS_CTR_DRBG_C */
 #if defined(MBEDTLS_DES_C)
-  case -(MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH):
+  case 0x0032: // -(MBEDTLS_ERR_DES_INVALID_INPUT_LENGTH):
     lowLevelError = StringFromLiteral("DES - The data input has an invalid length");
     break;
 #endif /* MBEDTLS_DES_C */
-
 #if defined(MBEDTLS_ENTROPY_C)
-  case -(MBEDTLS_ERR_ENTROPY_SOURCE_FAILED):
+  case 0x003C: // -(MBEDTLS_ERR_ENTROPY_SOURCE_FAILED):
     lowLevelError = StringFromLiteral("ENTROPY - Critical entropy source failure");
     break;
-  case -(MBEDTLS_ERR_ENTROPY_MAX_SOURCES):
+  case 0x003E: // -(MBEDTLS_ERR_ENTROPY_MAX_SOURCES):
     lowLevelError = StringFromLiteral("ENTROPY - No more sources can be added");
     break;
-  case -(MBEDTLS_ERR_ENTROPY_NO_SOURCES_DEFINED):
+  case 0x0040: // -(MBEDTLS_ERR_ENTROPY_NO_SOURCES_DEFINED):
     lowLevelError = StringFromLiteral("ENTROPY - No sources have been added to poll");
     break;
-  case -(MBEDTLS_ERR_ENTROPY_NO_STRONG_SOURCE):
+  case 0x003D: // -(MBEDTLS_ERR_ENTROPY_NO_STRONG_SOURCE):
     lowLevelError = StringFromLiteral("ENTROPY - No strong sources have been added to poll");
     break;
-  case -(MBEDTLS_ERR_ENTROPY_FILE_IO_ERROR):
+  case 0x003F: // -(MBEDTLS_ERR_ENTROPY_FILE_IO_ERROR):
     lowLevelError = StringFromLiteral("ENTROPY - Read/write error in file");
     break;
 #endif /* MBEDTLS_ENTROPY_C */
 #if defined(MBEDTLS_ERROR_C)
-  case -(MBEDTLS_ERR_ERROR_GENERIC_ERROR):
+  case 0x0001: // -(MBEDTLS_ERR_ERROR_GENERIC_ERROR):
     lowLevelError = StringFromLiteral("ERROR - Generic error");
     break;
-  case -(MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED):
+  case 0x006E: // -(MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED):
     lowLevelError = StringFromLiteral("ERROR - This is a bug in the library");
     break;
 #endif /* MBEDTLS_ERROR_C */
 #if defined(MBEDTLS_PLATFORM_C)
-  case -(MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED):
+  case 0x0070: // -(MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED):
     lowLevelError = StringFromLiteral("PLATFORM - Hardware accelerator failed");
     break;
-  case -(MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED):
+  case 0x0072: // -(MBEDTLS_ERR_PLATFORM_FEATURE_UNSUPPORTED):
     lowLevelError = StringFromLiteral("PLATFORM - The requested feature is not supported by the platform");
     break;
 #endif /* MBEDTLS_PLATFORM_C */
 #if defined(MBEDTLS_GCM_C)
-  case -(MBEDTLS_ERR_GCM_AUTH_FAILED):
+  case 0x0012: // -(MBEDTLS_ERR_GCM_AUTH_FAILED):
     lowLevelError = StringFromLiteral("GCM - Authenticated decryption failed");
     break;
-  case -(MBEDTLS_ERR_GCM_BAD_INPUT):
+  case 0x0014: // -(MBEDTLS_ERR_GCM_BAD_INPUT):
     lowLevelError = StringFromLiteral("GCM - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_GCM_BUFFER_TOO_SMALL):
+  case 0x0016: // -(MBEDTLS_ERR_GCM_BUFFER_TOO_SMALL):
     lowLevelError = StringFromLiteral("GCM - An output buffer is too small");
     break;
 #endif /* MBEDTLS_GCM_C */
 #if defined(MBEDTLS_HKDF_C)
-  case -(MBEDTLS_ERR_HKDF_BAD_INPUT_DATA):
+  case 0x5F80: // -(MBEDTLS_ERR_HKDF_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("HKDF - Bad input parameters to function");
     break;
 #endif /* MBEDTLS_HKDF_C */
 #if defined(MBEDTLS_HMAC_DRBG_C)
-  case -(MBEDTLS_ERR_HMAC_DRBG_REQUEST_TOO_BIG):
+  case 0x0003: // -(MBEDTLS_ERR_HMAC_DRBG_REQUEST_TOO_BIG):
     lowLevelError = StringFromLiteral("HMAC_DRBG - Too many random requested in single call");
     break;
-  case -(MBEDTLS_ERR_HMAC_DRBG_INPUT_TOO_BIG):
+  case 0x0005: // -(MBEDTLS_ERR_HMAC_DRBG_INPUT_TOO_BIG):
     lowLevelError = StringFromLiteral("HMAC_DRBG - Input too large (Entropy + additional)");
     break;
-  case -(MBEDTLS_ERR_HMAC_DRBG_FILE_IO_ERROR):
+  case 0x0007: // -(MBEDTLS_ERR_HMAC_DRBG_FILE_IO_ERROR):
     lowLevelError = StringFromLiteral("HMAC_DRBG - Read/write error in file");
     break;
-  case -(MBEDTLS_ERR_HMAC_DRBG_ENTROPY_SOURCE_FAILED):
+  case 0x0009: // -(MBEDTLS_ERR_HMAC_DRBG_ENTROPY_SOURCE_FAILED):
     lowLevelError = StringFromLiteral("HMAC_DRBG - The entropy source failed");
     break;
 #endif /* MBEDTLS_HMAC_DRBG_C */
 #if defined(MBEDTLS_LMS_C)
-  case -(MBEDTLS_ERR_LMS_BAD_INPUT_DATA):
+  case 0x0011: // -(MBEDTLS_ERR_LMS_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("LMS - Bad data has been input to an LMS function");
     break;
-  case -(MBEDTLS_ERR_LMS_OUT_OF_PRIVATE_KEYS):
+  case 0x0013: // -(MBEDTLS_ERR_LMS_OUT_OF_PRIVATE_KEYS):
     lowLevelError = StringFromLiteral("LMS - Specified LMS key has utilised all of its private keys");
     break;
-  case -(MBEDTLS_ERR_LMS_VERIFY_FAILED):
+  case 0x0015: // -(MBEDTLS_ERR_LMS_VERIFY_FAILED):
     lowLevelError = StringFromLiteral("LMS - LMS signature verification failed");
     break;
-  case -(MBEDTLS_ERR_LMS_ALLOC_FAILED):
+  case 0x0017: // -(MBEDTLS_ERR_LMS_ALLOC_FAILED):
     lowLevelError = StringFromLiteral("LMS - LMS failed to allocate space for a private key");
     break;
-  case -(MBEDTLS_ERR_LMS_BUFFER_TOO_SMALL):
+  case 0x0019: // -(MBEDTLS_ERR_LMS_BUFFER_TOO_SMALL):
     lowLevelError = StringFromLiteral("LMS - Input/output buffer is too small to contain requited data");
     break;
 #endif /* MBEDTLS_LMS_C */
 #if defined(MBEDTLS_NET_C)
-  case -(MBEDTLS_ERR_NET_SOCKET_FAILED):
+  case 0x0042: // -(MBEDTLS_ERR_NET_SOCKET_FAILED):
     lowLevelError = StringFromLiteral("NET - Failed to open a socket");
     break;
-  case -(MBEDTLS_ERR_NET_CONNECT_FAILED):
+  case 0x0044: // -(MBEDTLS_ERR_NET_CONNECT_FAILED):
     lowLevelError = StringFromLiteral("NET - The connection to the given server / port failed");
     break;
-  case -(MBEDTLS_ERR_NET_BIND_FAILED):
+  case 0x0046: // -(MBEDTLS_ERR_NET_BIND_FAILED):
     lowLevelError = StringFromLiteral("NET - Binding of the socket failed");
     break;
-  case -(MBEDTLS_ERR_NET_LISTEN_FAILED):
+  case 0x0048: // -(MBEDTLS_ERR_NET_LISTEN_FAILED):
     lowLevelError = StringFromLiteral("NET - Could not listen on the socket");
     break;
-  case -(MBEDTLS_ERR_NET_ACCEPT_FAILED):
+  case 0x004A: // -(MBEDTLS_ERR_NET_ACCEPT_FAILED):
     lowLevelError = StringFromLiteral("NET - Could not accept the incoming connection");
     break;
-  case -(MBEDTLS_ERR_NET_RECV_FAILED):
+  case 0x004C: // -(MBEDTLS_ERR_NET_RECV_FAILED):
     lowLevelError = StringFromLiteral("NET - Reading information from the socket failed");
     break;
-  case -(MBEDTLS_ERR_NET_SEND_FAILED):
+  case 0x004E: // -(MBEDTLS_ERR_NET_SEND_FAILED):
     lowLevelError = StringFromLiteral("NET - Sending information through the socket failed");
     break;
-  case -(MBEDTLS_ERR_NET_CONN_RESET):
+  case 0x0050: // -(MBEDTLS_ERR_NET_CONN_RESET):
     lowLevelError = StringFromLiteral("NET - Connection was reset by peer");
     break;
-  case -(MBEDTLS_ERR_NET_UNKNOWN_HOST):
+  case 0x0052: // -(MBEDTLS_ERR_NET_UNKNOWN_HOST):
     lowLevelError = StringFromLiteral("NET - Failed to get an IP address for the given hostname");
     break;
-  case -(MBEDTLS_ERR_NET_BUFFER_TOO_SMALL):
+  case 0x0043: // -(MBEDTLS_ERR_NET_BUFFER_TOO_SMALL):
     lowLevelError = StringFromLiteral("NET - Buffer is too small to hold the data");
     break;
-  case -(MBEDTLS_ERR_NET_INVALID_CONTEXT):
+  case 0x0045: // -(MBEDTLS_ERR_NET_INVALID_CONTEXT):
     lowLevelError = StringFromLiteral("NET - The context is invalid, eg because it was free()ed");
     break;
-  case -(MBEDTLS_ERR_NET_POLL_FAILED):
+  case 0x0047: // -(MBEDTLS_ERR_NET_POLL_FAILED):
     lowLevelError = StringFromLiteral("NET - Polling the net context failed");
     break;
-  case -(MBEDTLS_ERR_NET_BAD_INPUT_DATA):
+  case 0x0049: // -(MBEDTLS_ERR_NET_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("NET - Input invalid");
     break;
 #endif /* MBEDTLS_NET_C */
 #if defined(MBEDTLS_OID_C)
-  case -(MBEDTLS_ERR_OID_NOT_FOUND):
+  case 0x002E: // -(MBEDTLS_ERR_OID_NOT_FOUND):
     lowLevelError = StringFromLiteral("OID - OID is not found");
     break;
-  case -(MBEDTLS_ERR_OID_BUF_TOO_SMALL):
+  case 0x000B: // -(MBEDTLS_ERR_OID_BUF_TOO_SMALL):
     lowLevelError = StringFromLiteral("OID - output buffer is too small");
     break;
 #endif /* MBEDTLS_OID_C */
 #if defined(MBEDTLS_POLY1305_C)
-  case -(MBEDTLS_ERR_POLY1305_BAD_INPUT_DATA):
+  case 0x0057: // -(MBEDTLS_ERR_POLY1305_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("POLY1305 - Invalid input parameter(s)");
     break;
 #endif /* MBEDTLS_POLY1305_C */
 #if defined(MBEDTLS_SHA1_C)
-  case -(MBEDTLS_ERR_SHA1_BAD_INPUT_DATA):
+  case 0x0073: // -(MBEDTLS_ERR_SHA1_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("SHA1 - SHA-1 input data was malformed");
     break;
 #endif /* MBEDTLS_SHA1_C */
 #if defined(MBEDTLS_SHA256_C)
-  case -(MBEDTLS_ERR_SHA256_BAD_INPUT_DATA):
+  case 0x0074: // -(MBEDTLS_ERR_SHA256_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("SHA256 - SHA-256 input data was malformed");
     break;
 #endif /* MBEDTLS_SHA256_C */
 #if defined(MBEDTLS_SHA3_C)
-  case -(MBEDTLS_ERR_SHA3_BAD_INPUT_DATA):
+  case 0x0076: // -(MBEDTLS_ERR_SHA3_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("SHA3 - SHA-3 input data was malformed");
     break;
 #endif /* MBEDTLS_SHA3_C */
 #if defined(MBEDTLS_SHA512_C)
-  case -(MBEDTLS_ERR_SHA512_BAD_INPUT_DATA):
+  case 0x0075: // -(MBEDTLS_ERR_SHA512_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("SHA512 - SHA-512 input data was malformed");
     break;
 #endif /* MBEDTLS_SHA512_C */
 #if defined(MBEDTLS_THREADING_C)
-  case -(MBEDTLS_ERR_THREADING_BAD_INPUT_DATA):
+  case 0x001C: // -(MBEDTLS_ERR_THREADING_BAD_INPUT_DATA):
     lowLevelError = StringFromLiteral("THREADING - Bad input parameters to function");
     break;
-  case -(MBEDTLS_ERR_THREADING_MUTEX_ERROR):
+  case 0x001E: // -(MBEDTLS_ERR_THREADING_MUTEX_ERROR):
     lowLevelError = StringFromLiteral("THREADING - Locking / unlocking / free failed with error code");
     break;
 #endif /* MBEDTLS_THREADING_C */
