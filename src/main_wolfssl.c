@@ -161,13 +161,15 @@ main(void)
     return 1;
   }
 
+  wolfSSL_UseSNI(context.wolfSSL.ssl, WOLFSSL_SNI_HOST_NAME, hostname.value, (u16)hostname.length);
+
   // - Attach unix socket to WOLFSSL object
   wolfSSL_set_fd(context.wolfSSL.ssl, context.sockfd);
   wolfsslError = wolfSSL_connect(context.wolfSSL.ssl);
   if (wolfsslError != WOLFSSL_SUCCESS) {
     StringBuilderAppendStringLiteral(sb, "TLS handshake failed.\n");
     StringBuilderAppendStringLiteral(sb, "  wolfSSL error: ");
-    // StringBuilderAppendMbedtlsError(sb, mbedtlsError);
+    StringBuilderAppendWolfsslError(sb, wolfsslError);
     StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
