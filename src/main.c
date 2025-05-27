@@ -106,7 +106,7 @@ main(int argc, char *argv[])
   psa_crypto_init();
 
   // Load system CA
-  if (0) {
+  {
     memory_temp tempMemory = MemoryTempBegin(&stackMemory);
 
     struct string systemCAPath = StringFromLiteral("/etc/ssl/certs/ca-certificates.crt");
@@ -174,8 +174,8 @@ main(int argc, char *argv[])
     return 1;
   }
 
-#if 1 && IS_BUILD_DEBUG
-  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
+#if 0 && IS_BUILD_DEBUG
+  mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
 #else
   mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
   mbedtls_ssl_conf_ca_chain(&context.sslConfig, &context.cacert, NULL);
@@ -192,6 +192,7 @@ main(int argc, char *argv[])
 
   // Attach Mbed TLS to unix socket
   mbedtls_ssl_set_bio(&context.ssl, &context.sockfd, mbedtls_net_send, mbedtls_net_recv, 0);
+  mbedtls_ssl_set_hostname(&context.ssl, (char *)hostname.value);
   mbedtlsError = mbedtls_ssl_handshake(&context.ssl);
   if (mbedtlsError) {
     u32 breakHere = 1;
