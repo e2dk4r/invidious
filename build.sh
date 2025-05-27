@@ -127,7 +127,8 @@ done
 
 # default TLS library
 if [ $(( $WITH_MBEDTLS + $WITH_WOLFSSL )) -eq 0 ]; then
-  WITH_WOLFSSL=1
+  WITH_MBEDTLS=1
+  #WITH_WOLFSSL=1
 fi
 
 ################################################################

@@ -41,7 +41,7 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
   # copy config
   # https://mbed-tls.readthedocs.io/en/latest/kb/compiling-and-building/how-do-i-configure-mbedtls/
   # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/using-static-memory-instead-of-the-heap/
-  # TODO: cp "$pwd/mbedtls_config.h" "$MBEDTLS_DIR/include/mbedtls/mbedtls_config.h"
+  cp "$pwd/mbedtls_config.h" "$MBEDTLS_DIR/include/mbedtls/mbedtls_config.h"
 
   # README.md > ### CMake
   mbedtlsBuildType="Debug"
@@ -51,7 +51,9 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
   StartTimer
   cmake -G Ninja -S "$MBEDTLS_DIR" -B "$MBEDTLS_DIR/build" --install-prefix "$MBEDTLS_DIR-install" -D CMAKE_BUILD_TYPE="$mbedtlsBuildType" \
     -D ENABLE_PROGRAMS=OFF \
-    -D ENABLE_TESTING=OFF
+    -D ENABLE_TESTING=OFF \
+    -D IS_PLATFORM_LINUX="$IsPlatformLinux" \
+    -D IS_PLATFORM_WINDOWS="$IsPlatformWindows"
   Log "  Configured in $(StopTimer) seconds"
 
   StartTimer

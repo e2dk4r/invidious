@@ -5,6 +5,7 @@
 
 // for example usage see mbedtls/programs/ssl/ssl_client2.c
 #include <mbedtls/ctr_drbg.h>
+#include <mbedtls/debug.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/memory_buffer_alloc.h>
 #include <mbedtls/net_sockets.h>
@@ -34,6 +35,39 @@ struct invidious_context {
 };
 
 #include "string_builder_extended.c"
+
+internalfn void
+MbedtlsDebugCallback(void *data, int level, const char *file, int line, const char *str)
+{
+  string_builder *sb = data;
+
+  // see mbedtls-3.6.3/include/mbedtls/debug.h:144:33
+  string levelTexts[] = {
+      StringFromLiteral("[NDBG]"), // 0 No debug
+      StringFromLiteral("[ERR ]"), // 1 Error
+      StringFromLiteral("[CHG ]"), // 2 State change
+      StringFromLiteral("[INFO]"), // 3 Informational
+      StringFromLiteral("[VERB]"), // 4 Verbose
+  };
+  debug_assert(level >= 0 && level <= ARRAY_COUNT(levelTexts));
+
+  StringBuilderAppendString(sb, &levelTexts[level]);
+  StringBuilderAppendStringLiteral(sb, " ");
+  string relativeFile = StringFromZeroTerminated((u8 *)file, 1024);
+  {
+    string_cursor cursor = StringCursorFromString(&relativeFile);
+    StringCursorConsumeUntil(&cursor, &StringFromLiteral("mbedtls-3.6.3/"));
+    relativeFile = StringCursorExtractRemaining(&cursor);
+  }
+  StringBuilderAppendString(sb, &relativeFile);
+  StringBuilderAppendStringLiteral(sb, ":");
+  StringBuilderAppendS32(sb, line);
+  StringBuilderAppendStringLiteral(sb, ": ");
+  StringBuilderAppendZeroTerminated(sb, str, 1024);
+
+  string message = StringBuilderFlush(sb);
+  PrintString(&message);
+}
 
 int
 main(int argc, char *argv[])
@@ -95,7 +129,7 @@ main(int argc, char *argv[])
 
   // Mbed TLS Setup
   int mbedtlsError;
-  enum { MBEDTLS_ALLOCATED_MEMORY = 512 * KILOBYTES };
+  enum { MBEDTLS_ALLOCATED_MEMORY = 544 * KILOBYTES };
   mbedtls_memory_buffer_alloc_init(MemoryArenaPush(&stackMemory, MBEDTLS_ALLOCATED_MEMORY), MBEDTLS_ALLOCATED_MEMORY);
 
   mbedtls_ssl_init(&context.ssl);
@@ -103,7 +137,6 @@ main(int argc, char *argv[])
   mbedtls_x509_crt_init(&context.cacert);
   mbedtls_ctr_drbg_init(&context.ctrDrbg);
   mbedtls_entropy_init(&context.entropy);
-  psa_crypto_init();
 
   // Load system CA
   {
@@ -175,15 +208,28 @@ main(int argc, char *argv[])
   }
 
 #if 0 && IS_BUILD_DEBUG
+  // NOTE: Enable for troubleshooting handshake errors
+  mbedtls_ssl_conf_dbg(&context.sslConfig, MbedtlsDebugCallback, sb);
+  mbedtls_debug_set_threshold(4);
+#endif
+
+  mbedtls_ssl_conf_min_version(&context.sslConfig, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_4);
+  mbedtls_ssl_conf_max_version(&context.sslConfig, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_4);
+
+#if 0 && IS_BUILD_DEBUG
   mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
 #else
   mbedtls_ssl_conf_authmode(&context.sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
   mbedtls_ssl_conf_ca_chain(&context.sslConfig, &context.cacert, NULL);
 #endif
   mbedtls_ssl_conf_rng(&context.sslConfig, mbedtls_ctr_drbg_random, &context.ctrDrbg);
-  if (mbedtls_ssl_setup(&context.ssl, &context.sslConfig) != 0) {
-    PrintString(&StringFromLiteral(""));
+
+  mbedtlsError = mbedtls_ssl_setup(&context.ssl, &context.sslConfig);
+  if (mbedtlsError) {
+    u32 breakHere = 1;
     StringBuilderAppendStringLiteral(sb, "SSL setup failed.");
+    StringBuilderAppendStringLiteral(sb, "  Mbed TLS error: ");
+    StringBuilderAppendMbedtlsError(sb, mbedtlsError);
     StringBuilderAppendStringLiteral(sb, "\n");
     struct string message = StringBuilderFlush(sb);
     PrintString(&message);
@@ -193,6 +239,8 @@ main(int argc, char *argv[])
   // Attach Mbed TLS to unix socket
   mbedtls_ssl_set_bio(&context.ssl, &context.sockfd, mbedtls_net_send, mbedtls_net_recv, 0);
   mbedtls_ssl_set_hostname(&context.ssl, (char *)hostname.value);
+
+  // Handshake
   mbedtlsError = mbedtls_ssl_handshake(&context.ssl);
   if (mbedtlsError) {
     u32 breakHere = 1;
