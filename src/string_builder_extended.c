@@ -142,7 +142,7 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
 
   /* Extract the high-level part from the error code. */
   highLevelErrorCode = errnum & 0xFF80;
-  highLevelError = (struct string){.value = 0, .length = 0};
+  highLevelError = StringNull();
   switch (highLevelErrorCode) {
 #if defined(MBEDTLS_CIPHER_C)
   case 0x6080: // -(MBEDTLS_ERR_CIPHER_FEATURE_UNAVAILABLE):
@@ -659,7 +659,7 @@ StringBuilderAppendMbedtlsError(string_builder *sb, int errnum)
   /* Extract the low-level part from the error code. */
   lowLevelErrorCode = errnum & ~0xFF80;
 
-  lowLevelError = (struct string){.value = 0, .length = 0};
+  lowLevelError = StringNull();
   switch (lowLevelErrorCode) {
 #if defined(MBEDTLS_AES_C)
   case 0x0020: // -(MBEDTLS_ERR_AES_INVALID_KEY_LENGTH):
