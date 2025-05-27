@@ -152,7 +152,9 @@ main(void)
 
   // - WOLFSSL Object
 #if 0 && IS_DEBUG_BUILD
-  wolfSSL_CTX_set_verify(context.wolfSSL.ctx, SSL_VERIFY_NONE, 0);
+  wolfSSL_CTX_set_verify(context.wolfSSL.ctx, WOLFSSL_VERIFY_NONE, 0);
+#else
+  wolfSSL_CTX_set_verify(context.wolfSSL.ctx, WOLFSSL_VERIFY_PEER | WOLFSSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0);
 #endif
   context.wolfSSL.ssl = wolfSSL_new(context.wolfSSL.ctx);
   if (!context.wolfSSL.ssl) {
