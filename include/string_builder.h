@@ -56,7 +56,7 @@ StringBuilderAppendZeroTerminated(string_builder *stringBuilder, const char *src
 {
   struct string *outBuffer = stringBuilder->outBuffer;
   struct string string = StringFromZeroTerminated((u8 *)(u64)src, max);
-  memcpy(outBuffer->value + stringBuilder->length, string.value, string.length);
+  MemoryCopy(outBuffer->value + stringBuilder->length, string.value, string.length);
   stringBuilder->length += string.length;
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
@@ -65,7 +65,7 @@ static inline void
 StringBuilderAppendString(string_builder *stringBuilder, struct string *string)
 {
   struct string *outBuffer = stringBuilder->outBuffer;
-  memcpy(outBuffer->value + stringBuilder->length, string->value, string->length);
+  MemoryCopy(outBuffer->value + stringBuilder->length, string->value, string->length);
   stringBuilder->length += string->length;
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
@@ -79,7 +79,7 @@ StringBuilderAppendU64(string_builder *stringBuilder, u64 value)
   struct string *stringBuffer = stringBuilder->stringBuffer;
 
   struct string string = FormatU64(stringBuffer, value);
-  memcpy(outBuffer->value + stringBuilder->length, string.value, string.length);
+  MemoryCopy(outBuffer->value + stringBuilder->length, string.value, string.length);
   stringBuilder->length += string.length;
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
@@ -137,7 +137,7 @@ StringBuilderAppendHex(string_builder *stringBuilder, u64 value)
   struct string *stringBuffer = stringBuilder->stringBuffer;
 
   struct string string = FormatHex(stringBuffer, value);
-  memcpy(outBuffer->value + stringBuilder->length, string.value, string.length);
+  MemoryCopy(outBuffer->value + stringBuilder->length, string.value, string.length);
   stringBuilder->length += string.length;
   debug_assert(stringBuilder->length <= outBuffer->length);
 }
@@ -149,7 +149,7 @@ StringBuilderAppendF32(string_builder *stringBuilder, f32 value, u32 fractionCou
   struct string *stringBuffer = stringBuilder->stringBuffer;
 
   struct string string = FormatF32(stringBuffer, value, fractionCount);
-  memcpy(outBuffer->value + stringBuilder->length, string.value, string.length);
+  MemoryCopy(outBuffer->value + stringBuilder->length, string.value, string.length);
   stringBuilder->length += string.length;
   debug_assert(stringBuilder->length <= outBuffer->length);
 }

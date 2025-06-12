@@ -777,7 +777,7 @@ FormatF32(struct string *stringBuffer, f32 value, u32 fractionCount)
   /*****************************************************************
    * INITIAL BUFFER CAPACITY CHECK
    *****************************************************************/
-  struct string result = {.value = 0, .length = 0};
+  struct string result = StringNull();
   if (!stringBuffer
       // 1 for integer, 1 for point, plus fraction count is minimal
       || stringBuffer->length < 2 + fractionCount)

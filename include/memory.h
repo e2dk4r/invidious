@@ -4,18 +4,6 @@
 #include "math.h"
 #include "type.h"
 
-#if __has_builtin(__builtin_bzero)
-#define bzero(s, n) __builtin_bzero(s, n)
-#else
-#error bzero must be supported by compiler
-#endif
-
-#if __has_builtin(__builtin_memcpy)
-#define memcpy(dest, src, n) __builtin_memcpy(dest, src, n)
-#else
-#error memcpy must be supported by compiler
-#endif
-
 struct memory_arena {
   u8 *block;
   u64 used;
@@ -90,6 +78,18 @@ MemoryTempEnd(memory_temp *tempMemory)
 {
   memory_arena *arena = tempMemory->arena;
   arena->used = tempMemory->startedAt;
+}
+
+static void
+MemoryCopy(void *dest, void *src, u64 length)
+{
+  __builtin_memcpy(dest, src, length);
+}
+
+static void
+MemoryClear(void *dest, u64 length)
+{
+  __builtin_bzero(dest, length);
 }
 
 #define __cleanup_memory_temp__ __attribute__((cleanup(MemoryTempEnd)))
