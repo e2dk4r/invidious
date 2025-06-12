@@ -57,15 +57,15 @@ if [ $failedTestCount -ne 0 ]; then
   exit 1
 fi
 
-#if [ $IsBenchmarksEnabled -eq '1' ]; then
-#  if [ $failedTestCount -ne 0 ]; then
-#    echo 'Some tests are failed so benchmarks maybe wrong.'
-#    exit 1
-#  fi
-#  inc="-I$ProjectRoot/include -I$ProjectRoot/src"
-#  src="$pwd/json_bench.c"
-#  output="$outputDir/$(BasenameWithoutExtension "$src")"
-#  lib="$LIB_M"
-#  "$cc" -O2 -g -fno-inline $inc -o "$output" $src $lib
-#  "$output"
-#fi
+if [ $IsBenchmarksEnabled -eq '1' ]; then
+  if [ $failedTestCount -ne 0 ]; then
+    echo 'Some tests are failed so benchmarks maybe wrong.'
+    exit 1
+  fi
+  inc="-I$ProjectRoot/include -I$ProjectRoot/src"
+  src="$pwd/json_parser_bench.c"
+  output="$outputDir/$(BasenameWithoutExtension "$src")"
+  lib="$LIB_M"
+  "$cc" $cflags -O2 -g -fno-inline $inc -o "$output" $src $lib
+  #"$cc" $cflags $inc -o "$output" $src $lib
+fi

@@ -7,7 +7,7 @@ export TZ=UTC
 IsBuildDebug=1
 IsBuildEnabled=1
 IsTestsEnabled=1
-IsBenchmarksEnabled=0
+IsBenchmarksEnabled=1
 
 PROJECT_NAME=invidious
 OUTPUT_NAME=$PROJECT_NAME
