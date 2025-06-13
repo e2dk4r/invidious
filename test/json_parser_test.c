@@ -117,7 +117,9 @@ main(void)
   enum json_parser_test_error errorCode = JSON_PARSER_TEST_ERROR_NONE;
 
   // setup
-  u32 KILOBYTES = 1 << 10;
+  enum {
+    KILOBYTES = (1 << 10),
+  };
   u8 stackBuffer[8 * KILOBYTES];
   memory_arena stackMemory = {
       .block = stackBuffer,
