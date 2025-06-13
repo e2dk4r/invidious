@@ -83,7 +83,7 @@ internalfn struct string
 JsonTokenExtractString(struct json_token *token, struct string *json)
 {
   debug_assert(token);
-  debug_assert(token->end > token->start);
+  debug_assert(token->end >= token->start);
   u64 start = token->start;
   u64 length = token->end - start;
   return StringFromBuffer(json->value + start, length);
