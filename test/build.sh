@@ -66,6 +66,7 @@ if [ $IsBenchmarksEnabled -eq '1' ]; then
   src="$pwd/json_parser_bench.c"
   output="$outputDir/$(BasenameWithoutExtension "$src")"
   lib="$LIB_M"
-  "$cc" $cflags -O2 -g -fno-inline $inc -o "$output" $src $lib
-  #"$cc" $cflags $inc -o "$output" $src $lib
+  #"$cc" $cflags -O2 -g -fno-inline $inc -o "$output" $src $lib
+  #"$cc" $cflags -O2 $inc -o "$output" $src $lib
+  "$cc" $cflags $inc -o "$output" $src $lib
 fi

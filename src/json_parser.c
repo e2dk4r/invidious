@@ -340,3 +340,116 @@ JsonParse(struct json_parser *parser, struct string *json)
   parser->tokenCount = writtenTokenCount;
   return writtenTokenCount > 0;
 }
+
+struct json_cursor {
+  struct string *json;
+  struct json_parser *parser;
+  u32 tokenIndex;
+};
+
+internalfn struct json_cursor
+JsonCursor(struct string *json, struct json_parser *parser)
+{
+  debug_assert(!IsStringNullOrEmpty(json));
+  debug_assert(parser->tokenCount > 0);
+  return (struct json_cursor){
+      .json = json,
+      .parser = parser,
+      .tokenIndex = 0,
+  };
+}
+
+internalfn void
+JsonCursorReset(struct json_cursor *cursor)
+{
+  cursor->tokenIndex = 0;
+}
+
+internalfn b8
+JsonCursorIsAtEnd(struct json_cursor *cursor)
+{
+  return (cursor->tokenIndex + 1) == cursor->parser->tokenCount;
+}
+
+internalfn struct json_token *
+JsonCursorExtractToken(struct json_cursor *cursor)
+{
+  debug_assert(cursor->tokenIndex < cursor->parser->tokenCount);
+  struct json_token *token = cursor->parser->tokens + cursor->tokenIndex;
+  return token;
+}
+
+internalfn b8
+JsonCursorNext(struct json_cursor *cursor)
+{
+  if (JsonCursorIsAtEnd(cursor))
+    return 0;
+  cursor->tokenIndex++;
+  return 1;
+}
+
+internalfn b8
+JsonCursorNextKey(struct json_cursor *cursor)
+{
+  // assumes you are in json object and current token is key
+  // current token: "key" next token: "value"
+  if (!JsonCursorNext(cursor))
+    return 0;
+  struct json_token *value = JsonCursorExtractToken(cursor);
+
+  while (1) {
+    if (!JsonCursorNext(cursor))
+      return 0;
+    struct json_token *next = JsonCursorExtractToken(cursor);
+    if (next->start >= value->end)
+      break;
+    if (JsonCursorIsAtEnd(cursor))
+      return 0;
+  }
+
+  return 1;
+}
+
+internalfn struct string
+JsonCursorExtractString(struct json_cursor *cursor)
+{
+  struct json_token *token = JsonCursorExtractToken(cursor);
+  return StringSlice(cursor->json, token->start, token->end);
+}
+
+internalfn b8
+JsonCursorIsType(struct json_cursor *cursor, enum json_token_type type)
+{
+  struct json_token *token = JsonCursorExtractToken(cursor);
+  return token->type == type;
+}
+
+internalfn b8
+JsonCursorIsObject(struct json_cursor *cursor)
+{
+  return JsonCursorIsType(cursor, JSON_TOKEN_OBJECT);
+}
+
+internalfn b8
+JsonCursorIsArray(struct json_cursor *cursor)
+{
+  return JsonCursorIsType(cursor, JSON_TOKEN_ARRAY);
+}
+
+internalfn b8
+JsonCursorIsString(struct json_cursor *cursor)
+{
+  return JsonCursorIsType(cursor, JSON_TOKEN_STRING);
+}
+
+internalfn b8
+JsonCursorIsNumber(struct json_cursor *cursor)
+{
+  return JsonCursorIsType(cursor, JSON_TOKEN_NUMBER);
+}
+
+internalfn b8
+JsonCursorIsBoolean(struct json_cursor *cursor)
+{
+  return JsonCursorIsType(cursor, JSON_TOKEN_BOOLEAN_FALSE) || JsonCursorIsType(cursor, JSON_TOKEN_BOOLEAN_TRUE);
+}

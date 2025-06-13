@@ -210,9 +210,50 @@ main(int argc, char *argv[])
     PrintString(&message);
   }
 
+  {
+    struct json_cursor cursor = JsonCursor(&json, parser);
+    if (!JsonCursorIsObject(&cursor))
+      return 1; // error invalid json
+    if (!JsonCursorNext(&cursor))
+      return 1; // error invalid json
+
+    while (!JsonCursorIsAtEnd(&cursor)) {
+      struct string key = JsonCursorExtractString(&cursor);
+      if (IsStringEqual(&key, &StringFromLiteral("search_metadata")))
+        break;
+      JsonCursorNextKey(&cursor);
+    }
+
+    if (!JsonCursorNext(&cursor))
+      return 1; // error invalid json
+    if (!JsonCursorIsObject(&cursor))
+      return 1; // error invalid json
+    if (!JsonCursorNext(&cursor))
+      return 1; // error invalid json
+
+    while (!JsonCursorIsAtEnd(&cursor)) {
+      struct string key = JsonCursorExtractString(&cursor);
+      if (IsStringEqual(&key, &StringFromLiteral("count")))
+        break;
+      JsonCursorNextKey(&cursor);
+    }
+
+    if (!JsonCursorNext(&cursor))
+      return 1; // error invalid json
+    if (!JsonCursorIsNumber(&cursor))
+      return 1; // error invalid json
+
+    struct string count = JsonCursorExtractString(&cursor);
+    StringBuilderAppendStringLiteral(sb, ".search_metadata.count is ");
+    StringBuilderAppendString(sb, &count);
+
+    StringBuilderAppendStringLiteral(sb, "\n");
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
+  }
+
 #if 1 && IS_BUILD_DEBUG
   {
-    u32 breakHere = 1;
     StringBuilderAppendStringLiteral(sb, "Stack Memory:");
     StringBuilderAppendStringLiteral(sb, "\n  total:  ");
     StringBuilderAppendHumanReadableBytes(sb, stackMemory.total);
