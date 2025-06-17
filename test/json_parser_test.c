@@ -201,6 +201,25 @@ main(void)
                 },
         },
         {
+            .json = &StringFromLiteral("{ \"single string despite the appearance of brackets\": \"[ 1, 2 ]\" }"),
+            .expected =
+                {
+                    .tokenCount = 3,
+                    .tokens =
+                        (struct json_token[]){
+                            {.type = JSON_TOKEN_OBJECT, .start = 0x00, .end = 0x42},
+                            {.type = JSON_TOKEN_STRING, .start = 0x03, .end = 0x33},
+                            {.type = JSON_TOKEN_STRING, .start = 0x37, .end = 0x3f},
+                        },
+                    .strings =
+                        (struct string[]){
+                            StringFromLiteral("{ \"single string despite the appearance of brackets\": \"[ 1, 2 ]\" }"),
+                            StringFromLiteral("single string despite the appearance of brackets"),
+                            StringFromLiteral("[ 1, 2 ]"),
+                        },
+                },
+        },
+        {
             .json = &StringFromLiteral("{ \"positive number\": 97168748 }"),
             .expected =
                 {
