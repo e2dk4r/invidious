@@ -265,7 +265,6 @@ main(int argc, char *argv[])
     // HttpRequestAccept(hrb, &StringFromLiteral("application/json"));
     // struct string httpRequest = HttpRequestBuild(hrb);
 
-    u32 breakHere = 1;
     StringBuilderAppendStringLiteral(sb, "GET ");
     StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
     StringBuilderAppendString(sb, &videoId);
@@ -439,57 +438,57 @@ main(int argc, char *argv[])
     }
   }
 
-  for (u32 jsonTokenIndex = 1; jsonTokenIndex < jsonParser->tokenCount; jsonTokenIndex++) {
-    struct json_token *jsonToken = jsonParser->tokens + jsonTokenIndex;
-    if (jsonToken->type != JSON_TOKEN_STRING)
-      continue;
+  {
+    struct string type = StringNull();
+    struct string title = StringNull();
 
-    struct json_token *keyToken = jsonToken;
-    struct string key = JsonTokenExtractString(keyToken, &json);
-    if (IsStringEqual(&key, &StringFromLiteral("title"))) {
-      jsonTokenIndex++;
-      struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
-      if (titleToken->type != JSON_TOKEN_STRING) {
-        // expected title to be string
-        return 1;
+    struct json_cursor cursor = JsonCursor(&json, jsonParser);
+    if (!JsonCursorIsObject(&cursor))
+      return 1; // error invalid json
+    if (!JsonCursorNext(&cursor))
+      return 1; // error invalid json
+
+    while (!JsonCursorIsAtEnd(&cursor) && (IsStringNullOrEmpty(&type) || IsStringNullOrEmpty(&title))) {
+      struct string key = JsonCursorExtractString(&cursor);
+
+      if (IsStringEqual(&key, &StringFromLiteral("type"))) {
+        if (!JsonCursorNext(&cursor))
+          return 1; // error invalid json
+        if (!JsonCursorIsString(&cursor))
+          return 1; // error invalid json
+
+        type = JsonCursorExtractString(&cursor);
+        JsonCursorNext(&cursor);
+        continue;
       }
-      struct string title = JsonTokenExtractString(titleToken, &json);
 
-      StringBuilderAppendStringLiteral(sb, "Title: ");
-      StringBuilderAppendString(sb, &title);
-      StringBuilderAppendStringLiteral(sb, "\n");
-      struct string message = StringBuilderFlush(sb);
-      PrintString(&message);
-      continue;
-    }
+      else if (IsStringEqual(&key, &StringFromLiteral("title"))) {
+        if (!JsonCursorNext(&cursor))
+          return 1; // error invalid json
+        if (!JsonCursorIsString(&cursor))
+          return 1; // error invalid json
 
-    if (IsStringEqual(&key, &StringFromLiteral("type"))) {
-      jsonTokenIndex++;
-      struct json_token *titleToken = jsonParser->tokens + jsonTokenIndex;
-      if (titleToken->type != JSON_TOKEN_STRING) {
-        // expected title to be string
-        return 1;
+        title = JsonCursorExtractString(&cursor);
+        JsonCursorNext(&cursor);
+        continue;
       }
-      struct string type = JsonTokenExtractString(titleToken, &json);
 
-      StringBuilderAppendStringLiteral(sb, "Type: ");
-      StringBuilderAppendString(sb, &type);
-      StringBuilderAppendStringLiteral(sb, "\n");
-      struct string message = StringBuilderFlush(sb);
-      PrintString(&message);
-      continue;
+      if (!JsonCursorNextKey(&cursor))
+        return 1; // error invalid json
     }
 
-    jsonTokenIndex++;
-    struct json_token *valueToken = jsonParser->tokens + jsonTokenIndex;
+    if (IsStringNullOrEmpty(&type) || IsStringNullOrEmpty(&title))
+      return 1; // error invalid json
 
-    // go to next key value pair
-    while (jsonTokenIndex < jsonParser->tokenCount - 1) {
-      struct json_token *token = jsonParser->tokens + jsonTokenIndex + 1;
-      if (valueToken->end < token->start)
-        break;
-      jsonTokenIndex++;
-    }
+    StringBuilderAppendStringLiteral(sb, "Type: ");
+    StringBuilderAppendString(sb, &type);
+    StringBuilderAppendStringLiteral(sb, "\n");
+    StringBuilderAppendStringLiteral(sb, "Title: ");
+    StringBuilderAppendString(sb, &title);
+    StringBuilderAppendStringLiteral(sb, "\n");
+
+    struct string message = StringBuilderFlush(sb);
+    PrintString(&message);
   }
 
 #if IS_BUILD_DEBUG
