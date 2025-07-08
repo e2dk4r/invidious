@@ -1,11 +1,11 @@
 pwd="$ProjectRoot/3rdparty/mbedtls"
 outputDir="$OutputDir/3rdparty"
 
-MBEDTLS_VERSION=3.6.3
+MBEDTLS_VERSION=3.6.4
 MBEDTLS_URL="https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$MBEDTLS_VERSION/mbedtls-$MBEDTLS_VERSION.tar.bz2"
 MBEDTLS_DIR="$outputDir/mbedtls-$MBEDTLS_VERSION"
 MBEDTLS_SRC="$outputDir/mbedtls-$MBEDTLS_VERSION.tar.bz2"
-MBEDTLS_SRC_B2SUM=8afccfd009260df81a64012f424bcaa4c1ac72e6865b93c3c9eba47533b1d51cfbb4a4417c9cc68cd8cf77024db946bee19c347b0b040883907482c475d077b9
+MBEDTLS_SRC_B2SUM=d9bfb3984081a346ac5b022af79f133a0e97cd17770e3aa468d0db200cebd21f92d00cddbe23038fbbda61deb1d9d96f5ac84b0b3a75e0e98b36d236f97e738a
 
 Log "Mbed TLS:"
 Log "  Version: $MBEDTLS_VERSION"
