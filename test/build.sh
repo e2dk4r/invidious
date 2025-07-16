@@ -44,6 +44,14 @@ lib=""
 "$cc" $cflags $ldflags $inc -o "$output" $src $lib
 RunTest "$output" "TEST http parser failed."
 
+### http_request
+inc="-I$ProjectRoot/include -I$ProjectRoot/src"
+src="$pwd/http_request_test.c"
+output="$outputDir/$(BasenameWithoutExtension "$src")"
+lib=""
+"$cc" $cflags $ldflags $inc -o "$output" $src $lib
+RunTest "$output" "TEST http request failed."
+
 ### options
 inc="-I$ProjectRoot/include -I$ProjectRoot/src"
 src="$pwd/options_test.c"

@@ -17,6 +17,7 @@
 #include "type.h"
 
 #include "http_parser.c"
+#include "http_request.c"
 #include "json_parser.c"
 #include "platform.h"
 
@@ -255,16 +256,48 @@ main(int argc, char *argv[])
 
   // Send an HTTP Request
   {
-    // memory_temp tempMemory = MemoryTempBegin(&stackMemory);
-    // struct http_request_builder *hrb = MakeHttpRequestBuilder(tempMemory.arena);
-    // HttpRequestMethod(hrb, HTTP_METHOD_GET);
-    // HttpRequestVersion(hrb, HTTP_VERSION_1_1);
-    // HttpRequestPath(hrb, "/api/v1/videos/");
-    // HttpRequestPathAppend(hrb, &videoId);
-    // HttpRequestHost(hrb, &hostname);
-    // HttpRequestAccept(hrb, &StringFromLiteral("application/json"));
-    // struct string httpRequest = HttpRequestBuild(hrb);
+    /*
+    struct http_request_info requestInfo = {
+        .method = HTTP_METHOD_POST,
+        .version = HTTP_VERSION_20,
+        .url = url,
 
+        .contentType = HTTP_CONTENT_TYPE_JSON,
+        .content = json,
+
+        .contentType = HTTP_CONTENT_TYPE_FORM_URLENCODED,
+        .content =
+            (struct http_form_urlencoded_list){
+                .count = 1,
+                .items =
+                    (struct http_form_urlencoded_item[]){
+                        {
+                            .name = StringFromLiteral("id"),
+                            .value = StringFromLiteral("rZpvPY4V0mciNHBPifitWVlJPaHFIg9Q"),
+                        },
+                    },
+            },
+    };
+    */
+
+    memory_temp tempMemory = MemoryTempBegin(&stackMemory);
+
+#if 1
+    struct string_builder *pathBuilder = MakeStringBuilder(tempMemory.arena, 256, 0);
+    StringBuilderAppendStringLiteral(pathBuilder, "/api/v1/videos/");
+    StringBuilderAppendString(pathBuilder, &videoId);
+    struct string path = StringBuilderFlush(pathBuilder);
+
+    struct http_request_info requestInfo = {
+        .method = HTTP_METHOD_GET,
+        .version = HTTP_VERSION_11,
+        .host = hostname,
+        .path = path,
+        .accept = HTTP_CONTENT_TYPE_JSON,
+    };
+
+    struct string request = HttpRequestBuild(&requestInfo, tempMemory.arena);
+#else
     StringBuilderAppendStringLiteral(sb, "GET ");
     StringBuilderAppendStringLiteral(sb, "/api/v1/videos/");
     StringBuilderAppendString(sb, &videoId);
@@ -275,6 +308,7 @@ main(int argc, char *argv[])
     StringBuilderAppendStringLiteral(sb, "\r\n");
     StringBuilderAppendStringLiteral(sb, "\r\n");
     struct string request = StringBuilderFlush(sb);
+#endif
 
     u64 totalBytesWritten = 0;
     while (1) {
@@ -300,7 +334,7 @@ main(int argc, char *argv[])
         break;
     }
 
-    // MemoryTempEnd(&tempMemory);
+    MemoryTempEnd(&tempMemory);
   }
 
   // Recieve a HTTP Response and parse it
