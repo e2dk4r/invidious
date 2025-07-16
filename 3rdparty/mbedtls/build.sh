@@ -35,7 +35,7 @@ if [ $isMbedtlsBuilt -eq 0 ]; then
     Log "  Extracted in $(StopTimer) seconds"
   fi
 
-  # TODO:
+  # TODO: Reduce mbedtls memory footprint
   # https://mbed-tls.readthedocs.io/en/latest/kb/how-to/reduce-polarssl-memory-and-storage-footprint/
 
   # copy config
