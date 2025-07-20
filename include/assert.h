@@ -1,33 +1,33 @@
 #pragma once
 
+static inline void
+runtime_assert(int condition)
+{
+  if (condition)
+    return;
+
 #if defined(__has_builtin) && __has_builtin(__builtin_debugtrap)
-#define __ASSERT__ __builtin_debugtrap()
+  __builtin_debugtrap();
 #elif defined(_MSC_VER)
-#define __ASSERT__ __debugbreak()
+  __debugbreak();
 #else
-#define __ASSERT__ __asm__("int3; nop")
+  __asm__("int3; nop");
 #endif
+}
 
+static inline void
+debug_assert(int condition)
+{
 #if IS_BUILD_DEBUG
-
-#define debug_assert(expression)                                                                                       \
-  if (!(expression)) {                                                                                                 \
-    __ASSERT__;                                                                                                        \
-  }
-
-#define breakpoint(...) __ASSERT__
-
-#else
-
-#define debug_assert(expression)
-#define breakpoint()
-
+  runtime_assert(condition);
 #endif
+}
 
-#define runtime_assert(x)                                                                                              \
-  if (!(x)) {                                                                                                          \
-    __ASSERT__;                                                                                                        \
-  }
+static inline void
+breakpoint(void)
+{
+  debug_assert(0);
+}
 
 #define static_assert(expression)                                                                                      \
   do {                                                                                                                 \

@@ -82,7 +82,7 @@ JsonParserGetToken(struct json_parser *parser, u32 index)
 internalfn struct string
 JsonTokenExtractString(struct json_token *token, struct string *json)
 {
-  debug_assert(token);
+  debug_assert(token != 0);
   debug_assert(token->end >= token->start);
   u64 start = token->start;
   u64 length = token->end - start;
